@@ -36,7 +36,7 @@ def log(text):
 	sys.stdout.flush()
 
 class Config():
-	def __init__(self, drbd):
+	def __init__(self):
 		self.configfile = CONFIG
 		self.port       = False
 		self.peer_host  = False
@@ -45,7 +45,7 @@ class Config():
 		self.interval   = False
 		self.services   = list()
 		self.drbd_res   = list()
-		self.drbd       = drbd
+		self.drbd       = Drbd()
 
 		if len(sys.argv) > 1:
 			self.configfile = sys.argv[1]
@@ -239,8 +239,7 @@ def main():
 	global loop
 	global pinger
 
-	drbd   = Drbd()
-	config = Config(drbd)
+	config = Config()
 	config.Show()
 
 	signal.signal(signal.SIGINT, signal_handler)

@@ -175,6 +175,7 @@ class ClientHandler(SocketServer.BaseRequestHandler):
 	def handle(self):
 		self.data, self.sock = self.request
 
+		self.server.last_udp_data = self.data
 		self.server.got_remote_ping.set()
 
 class UdpPingServer(SocketServer.UDPServer):
@@ -182,6 +183,7 @@ class UdpPingServer(SocketServer.UDPServer):
 		SocketServer.UDPServer.__init__(self, ("0.0.0.0", config.port), ClientHandler)
 
 		self.config              = config
+		self.last_udp_data       = False
 		self.got_remote_ping     = threading.Event()
 		self.allow_reuse_address = True
 
@@ -217,8 +219,10 @@ class Pinger(threading.Thread):
 	def run(self):
 		log("Starting pinger")
 
+		global monitor
+
 		while self.loop:
-			self.sock.sendto("time:%f" % (time.time().real), (self.config.peer_host, self.config.peer_port))
+			self.sock.sendto("%s" % (monitor.state.role), (self.config.peer_host, self.config.peer_port))
 			time.sleep(self.config.interval)
 
 		log("Pinger stopped")
@@ -243,10 +247,11 @@ class Monitor(threading.Thread):
 		while self.loop:
 			if self.listener.server.got_remote_ping.wait(self.config.timeout):
 				monitor.state.role = self.listener.server.config.role
-				monitor.state.peer = "up"
+				monitor.state.peer = "up/%s" % (self.listener.server.last_udp_data)
+
 			else:
 				monitor.state.role = "master"
-				monitor.state.peer = "down"
+				monitor.state.peer = "down/unknown"
 
 			self.listener.server.got_remote_ping.clear()
 			self.state.Show()

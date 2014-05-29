@@ -100,6 +100,10 @@ class Config():
 				elif name == "drbd_resources":
 					self.drbd_res = self.SplitIntoList(value)
 
+					for resource in self.drbd_res:
+						if resource not in self.drbd.resources.keys():
+							fail("DRBD resource '%s' does not exist" % (resource))
+
 				else:
 					fail("Bad configuration value '%s'" % (name))
 

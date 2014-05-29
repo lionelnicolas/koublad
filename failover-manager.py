@@ -76,7 +76,7 @@ class Config():
 				elif name == "timeout":
 					try:
 						self.timeout  = float(value)
-						self.interval = float(self.timeout - 0.5)
+						self.interval = float(self.timeout / 2.0)
 
 						if self.timeout < 1:
 							fail("Value 'timeout' must be at least 1 second")

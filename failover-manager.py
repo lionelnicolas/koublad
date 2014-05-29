@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import glob
 import os
 import re
 import signal
@@ -9,9 +10,13 @@ import sys
 import threading
 import time
 
-CONFIG         = "/etc/failover.conf"
-RE_CONFIG_LINE = re.compile("^[\ \t]*([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
-RE_CONFIG_PEER = re.compile("^([^:]+):([0-9]+)$")
+CONFIG   = "/etc/failover.conf"
+DRBD_DIR = "/etc/drbd.d"
+
+RE_CONFIG_LINE   = re.compile("^[\ \t]*([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
+RE_CONFIG_PEER   = re.compile("^([^:]+):([0-9]+)$")
+RE_DRBD_RESOURCE = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
+RE_DRBD_DEVICE   = re.compile("^[\ \t]*device[\ \t]+([a-z0-9/]+).*$")
 
 loop     = True
 listener = False
@@ -31,7 +36,7 @@ def log(text):
 	sys.stdout.flush()
 
 class Config():
-	def __init__(self):
+	def __init__(self, drbd):
 		self.configfile = CONFIG
 		self.port       = False
 		self.peer_host  = False
@@ -40,6 +45,7 @@ class Config():
 		self.interval   = False
 		self.services   = list()
 		self.drbd_res   = list()
+		self.drbd       = drbd
 
 		if len(sys.argv) > 1:
 			self.configfile = sys.argv[1]
@@ -125,6 +131,32 @@ class Config():
 		print "%-12s: %d" % ("interval", self.interval)
 		print "%-12s: %s" % ("services", self.services)
 		print "%-12s: %s" % ("drbd_res", self.drbd_res)
+		print
+
+class Drbd:
+	def __init__(self):
+		self.drbd_dir  = DRBD_DIR
+		self.resources = dict()
+
+		if len(sys.argv) > 2:
+			self.drbd_dir = sys.argv[2]
+
+		self.GetResources()
+
+	def GetResources(self):
+		for res in glob.glob("%s/*.res" % (self.drbd_dir)):
+			resource = False
+			device   = False
+
+			for line in open(res).readlines():
+				matchresource = RE_DRBD_RESOURCE.match(line)
+				matchdevice   = RE_DRBD_DEVICE.match(line)
+
+				if matchresource: resource = matchresource.group(1)
+				if matchdevice:   device   = matchdevice.group(1)
+
+			if resource and device:
+				self.resources[resource] = device
 
 class ClientHandler(SocketServer.BaseRequestHandler):
 	def handle(self):
@@ -203,7 +235,8 @@ def main():
 	global loop
 	global pinger
 
-	config = Config()
+	drbd   = Drbd()
+	config = Config(drbd)
 	config.Show()
 
 	signal.signal(signal.SIGINT, signal_handler)

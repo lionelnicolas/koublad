@@ -3,6 +3,7 @@
 import os
 import re
 import signal
+import socket
 import SocketServer
 import sys
 import threading
@@ -164,18 +165,43 @@ class Listener(threading.Thread):
 
 		self.loop = False
 
+class Pinger(threading.Thread):
+	def __init__(self, config):
+		threading.Thread.__init__(self)
+
+		self.config = config
+		self.loop   = True
+		self.sock   = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+	def run(self):
+		log("Starting pinger")
+
+		while self.loop:
+			self.sock.sendto("time:%f" % (time.time().real), (self.config.peer_host, self.config.peer_port))
+			time.sleep(self.config.interval)
+
+		log("Pinger stopped")
+
+	def stop(self):
+		log("Stopping pinger")
+
+		self.loop = False
+
 def signal_handler(signum, frame):
 	global listener
 	global loop
+	global pinger
 
 	loop = False
 
 	if signum == signal.SIGINT:
 		listener.stop()
+		pinger.stop()
 
 def main():
 	global listener
 	global loop
+	global pinger
 
 	config = Config()
 	config.Show()
@@ -183,8 +209,10 @@ def main():
 	signal.signal(signal.SIGINT, signal_handler)
 
 	listener = Listener(config)
+	pinger   = Pinger(config)
 
 	listener.start()
+	pinger.start()
 
 	while loop:
 		time.sleep(.1)

@@ -78,8 +78,8 @@ class Config():
 						self.timeout  = float(value)
 						self.interval = float(self.timeout / 2.0)
 
-						if self.timeout < 1:
-							fail("Value 'timeout' must be at least 1 second")
+						if self.timeout < 0.1:
+							fail("Value 'timeout' must be at least 0.1 seconds")
 
 					except:
 						fail("Value 'timeout' must be a float")

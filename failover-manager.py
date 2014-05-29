@@ -2,16 +2,32 @@
 
 import os
 import re
+import signal
+import SocketServer
 import sys
+import threading
+import time
 
 CONFIG         = "/etc/failover.conf"
 RE_CONFIG_LINE = re.compile("^[\ \t]*([a-zA-Z0-9]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
 RE_CONFIG_PEER = re.compile("^([^:]+):([0-9]+)$")
 
+loop     = True
+listener = False
+pinger   = False
+
 def fail(text, code=1):
 	sys.stderr.write("%s\n" % text)
 	sys.stderr.flush()
 	sys.exit(code)
+
+def error(text):
+	sys.stderr.write("%s\n" % text)
+	sys.stderr.flush()
+
+def log(text):
+	sys.stdout.write("%s\n" % text)
+	sys.stdout.flush()
 
 class Config():
 	def __init__(self):
@@ -109,9 +125,69 @@ class Config():
 		print "%-12s: %s" % ("services", self.services)
 		print "%-12s: %s" % ("drbd_res", self.drbd_res)
 
+class ClientHandler(SocketServer.BaseRequestHandler):
+	def handle(self):
+		self.data, self.sock = self.request
+		print "Received '%s' from %s" % (self.data, self.client_address[0])
+
+		# self.server.config
+
+class UdpPingServer(SocketServer.UDPServer):
+	def __init__(self, config):
+		SocketServer.UDPServer.__init__(self, ("0.0.0.0", config.port), ClientHandler)
+
+		self.config              = config
+		self.timeout             = self.config.timeout
+		self.allow_reuse_address = True
+
+	def handle_timeout(self):
+		print "No data received in the last %d seconds" % (self.timeout)
+
+class Listener(threading.Thread):
+	def __init__(self, config):
+		threading.Thread.__init__(self)
+
+		self.config = config
+		self.loop   = True
+		self.server = UdpPingServer(self.config)
+
+	def run(self):
+		log("Starting listener")
+
+		while self.loop:
+			self.server.handle_request()
+
+		log("Listener stopped")
+
+	def stop(self):
+		log("Stopping listener")
+
+		self.loop = False
+
+def signal_handler(signum, frame):
+	global listener
+	global loop
+
+	loop = False
+
+	if signum == signal.SIGINT:
+		listener.stop()
+
 def main():
+	global listener
+	global loop
+
 	config = Config()
 	config.Show()
+
+	signal.signal(signal.SIGINT, signal_handler)
+
+	listener = Listener(config)
+
+	listener.start()
+
+	while loop:
+		time.sleep(.1)
 
 if __name__ == '__main__':
 	main()

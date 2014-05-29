@@ -39,6 +39,7 @@ class Config():
 	def __init__(self):
 		self.configfile = CONFIG
 		self.port       = False
+		self.role       = False
 		self.peer_host  = False
 		self.peer_port  = False
 		self.timeout    = False
@@ -70,7 +71,13 @@ class Config():
 					except:
 						fail("Value 'port' must be an integer")
 
-				elif   name == "peer":
+				elif name == "role":
+					if value not in [ "master", "slave" ]:
+						fail("Bad value for 'role', must be 'master' or 'slave'")
+
+					self.role = value
+
+				elif name == "peer":
 					match = RE_CONFIG_PEER.match(value)
 
 					if match:
@@ -107,7 +114,7 @@ class Config():
 				else:
 					fail("Bad configuration value '%s'" % (name))
 
-		if self.port and self.peer_host and self.peer_port and self.timeout and self.interval:
+		if self.port and self.role and self.peer_host and self.peer_port and self.timeout and self.interval:
 			# configuration is complete
 			pass
 
@@ -129,6 +136,7 @@ class Config():
 	def Show(self):
 		print "%-12s: %s" % ("configfile", self.configfile)
 		print "%-12s: %d" % ("port", self.port)
+		print "%-12s: %s" % ("role", self.role)
 		print "%-12s: %s" % ("peer_host", self.peer_host)
 		print "%-12s: %d" % ("peer_port", self.peer_port)
 		print "%-12s: %d" % ("timeout", self.timeout)

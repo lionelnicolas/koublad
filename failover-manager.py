@@ -20,6 +20,7 @@ RE_DRBD_DEVICE   = re.compile("^[\ \t]*device[\ \t]+([a-z0-9/]+).*$")
 
 loop     = True
 listener = False
+monitor  = False
 pinger   = False
 
 def fail(text, code=1):
@@ -173,9 +174,10 @@ class Drbd:
 class ClientHandler(SocketServer.BaseRequestHandler):
 	def handle(self):
 		self.data, self.sock = self.request
-		print "Received '%s' from %s" % (self.data, self.client_address[0])
 
-		# self.server.config
+		global monitor
+		monitor.state.role = self.server.config.role
+		monitor.state.peer = "up"
 
 class UdpPingServer(SocketServer.UDPServer):
 	def __init__(self, config):
@@ -186,7 +188,9 @@ class UdpPingServer(SocketServer.UDPServer):
 		self.allow_reuse_address = True
 
 	def handle_timeout(self):
-		print "No data received in the last %d seconds" % (self.timeout)
+		global monitor
+		monitor.state.role = "master"
+		monitor.state.peer = "down"
 
 class Listener(threading.Thread):
 	def __init__(self, config):
@@ -231,20 +235,54 @@ class Pinger(threading.Thread):
 
 		self.loop = False
 
+class Monitor(threading.Thread):
+	def __init__(self, config, listener):
+		threading.Thread.__init__(self)
+
+		self.config   = config
+		self.listener = listener
+		self.loop     = True
+		self.state    = State()
+
+	def run(self):
+		log("Starting monitor")
+
+		while self.loop:
+			self.state.Show()
+			time.sleep(self.config.interval)
+
+		log("Monitor stopped")
+
+	def stop(self):
+		log("Stopping monitor")
+
+		self.loop = False
+
+class State():
+	def __init__(self):
+		self.role = False
+		self.peer = False
+
+	def Show(self):
+		print "role:%-6s peer:%-4s" % (self.role, self.peer)
+
 def signal_handler(signum, frame):
 	global listener
 	global loop
+	global monitor
 	global pinger
 
 	loop = False
 
 	if signum == signal.SIGINT:
 		listener.stop()
+		monitor.stop()
 		pinger.stop()
 
 def main():
 	global listener
 	global loop
+	global monitor
 	global pinger
 
 	config = Config()
@@ -253,9 +291,11 @@ def main():
 	signal.signal(signal.SIGINT, signal_handler)
 
 	listener = Listener(config)
+	monitor  = Monitor(config, listener)
 	pinger   = Pinger(config)
 
 	listener.start()
+	monitor.start()
 	pinger.start()
 
 	while loop:

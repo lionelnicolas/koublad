@@ -30,9 +30,7 @@ RE_DRBD_RESOURCE = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
 RE_DRBD_DEVICE   = re.compile("^[\ \t]*device[\ \t]+([a-z0-9/]+).*$")
 
 loop     = True
-listener = False
 monitor  = False
-pinger   = False
 
 def fail(text, code=1):
 	sys.stderr.write("%s\n" % text)
@@ -459,10 +457,8 @@ class Status():
 		self.Disable()
 
 def signal_handler(signum, frame):
-	global listener
 	global loop
 	global monitor
-	global pinger
 
 	loop = False
 
@@ -471,10 +467,8 @@ def signal_handler(signum, frame):
 		monitor.stop()
 
 def main():
-	global listener
 	global loop
 	global monitor
-	global pinger
 
 	config = Config()
 	config.Show()

@@ -285,6 +285,8 @@ class Monitor(threading.Thread):
 
 		while self.loop:
 			if self.listener.server.got_remote_ping.wait(self.config.timeout):
+				self.listener.server.got_remote_ping.clear()
+
 				if not self.loop:
 					continue
 
@@ -367,7 +369,6 @@ class Monitor(threading.Thread):
 				else:
 					log("Oops, our state is wrong")
 
-			self.listener.server.got_remote_ping.clear()
 
 		log("Monitor stopped")
 

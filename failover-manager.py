@@ -2,6 +2,7 @@
 
 import glob
 import os
+import random
 import re
 import signal
 import socket
@@ -244,7 +245,7 @@ class Pinger(threading.Thread):
 		global monitor
 
 		while self.loop:
-			self.sock.sendto("%s" % (monitor.state.role), (self.config.peer_host, self.config.peer_port))
+			self.sock.sendto("%s" % (monitor.status.state), (self.config.peer_host, self.config.peer_port))
 			time.sleep(self.config.interval)
 
 		log("Pinger stopped")
@@ -261,7 +262,7 @@ class Monitor(threading.Thread):
 		self.config   = config
 		self.listener = listener
 		self.loop     = True
-		self.state    = State()
+		self.status   = Status(self.config)
 
 	def run(self):
 		log("Starting monitor")
@@ -285,13 +286,63 @@ class Monitor(threading.Thread):
 
 		self.loop = False
 
-class State():
-	def __init__(self):
-		self.role = False
-		self.peer = False
+class Status():
+	def __init__(self, config):
+		self.pstate = "unknown"
+		self.state  = "starting"
+		self.peer   = False
+		self.config = config
 
 	def Show(self):
-		print "role:%-6s peer:%-4s" % (self.role, self.peer)
+		sys.stdout.write("state:%-9s peer:%-9s -- " % (self.state, self.peer))
+
+	def SetState(self, newstate):
+		self.pstate = self.state
+		self.state  = newstate
+
+	def SetPeerState(self, newstate):
+		oldstate  = self.peer
+		self.peer = newstate
+
+		if oldstate and newstate != oldstate:
+			if newstate == "unknown":
+				log("Peer is down")
+
+			else:
+				log("Peer state is now '%s'" % (newstate))
+
+
+	def SetDead(self):
+		log("Waiting for a while before handling events")
+
+		self.SetState("waiting")
+		time.sleep(self.config.initdead)
+		self.SetState("slave")
+
+	def NotifyMasterTransition(self):
+		log("Notifying that we are transitioning to master")
+
+		self.SetState("enabling")
+
+	def Enable(self):
+		if self.state != "enabling":
+			self.NotifyMasterTransition()
+
+		log("Transitioning to master")
+
+		time.sleep(5 * random.random()) # fake processing time
+		self.SetState("master")
+
+		log("We are now master")
+
+	def Disable(self):
+		log("Transitioning to slave")
+
+		self.SetState("disabling")
+		time.sleep(5 * random.random()) # fake processing time
+		self.SetState("slave")
+
+		log("We are now slave")
 
 def signal_handler(signum, frame):
 	global listener

@@ -424,7 +424,7 @@ class Status():
 	def NotifyMasterTransition(self):
 		log("Notifying that we are transitioning to master")
 
-		self.SetState("enabling")
+		self.monitor.pinger.send("enabling")
 
 	def Enable(self):
 		if self.state == "shutdown":

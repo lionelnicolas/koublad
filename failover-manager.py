@@ -205,7 +205,7 @@ class UdpPingServer(SocketServer.UDPServer):
 		SocketServer.UDPServer.__init__(self, ("0.0.0.0", config.port), ClientHandler)
 
 		self.config              = config
-		self.last_udp_data       = False
+		self.last_udp_data       = "unknown"
 		self.got_remote_ping     = threading.Event()
 		self.allow_reuse_address = True
 

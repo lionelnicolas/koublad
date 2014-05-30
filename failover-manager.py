@@ -280,6 +280,9 @@ class Monitor(threading.Thread):
 	def run(self):
 		log("Starting monitor")
 
+		self.listener.start()
+		self.pinger.start()
+
 		self.status.SetDead()
 		# TODO: get current "real" state (DRBD, services ???)
 
@@ -369,6 +372,8 @@ class Monitor(threading.Thread):
 				else:
 					log("Oops, our state is wrong")
 
+		self.listener.stop()
+		self.pinger.stop()
 
 		log("Monitor stopped")
 
@@ -463,10 +468,7 @@ def signal_handler(signum, frame):
 
 	if signum in [ signal.SIGINT, signal.SIGTERM ]:
 		monitor.status.Shutdown()
-
 		monitor.stop()
-		listener.stop()
-		pinger.stop()
 
 def main():
 	global listener
@@ -485,8 +487,6 @@ def main():
 	monitor  = Monitor(config, listener, pinger)
 
 	monitor.start()
-	listener.start()
-	pinger.start()
 
 	while loop:
 		time.sleep(.1)

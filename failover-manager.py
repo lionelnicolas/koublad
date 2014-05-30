@@ -392,11 +392,15 @@ class Status():
 	def Show(self):
 		sys.stdout.write("state:%-9s peer:%-9s -- " % (self.state, self.peer))
 
-	def SetState(self, newstate):
+	def SetState(self, newstate, immediate=False):
 		self.pstate = self.state
 		self.state  = newstate
 
 		self.monitor.pinger.wake()
+
+                # Instantly send the new state to peer, without waiting for pinger mainloop
+                if immediate:
+                    self.monitor.pinger.send(newstate)
 
 	def SetPeerState(self, newstate):
 		oldstate  = self.peer
@@ -424,7 +428,7 @@ class Status():
 		log("Notifying that we are transitioning to master")
 
 		if self.config.role == "master":
-			self.SetState("failback")
+			self.SetState("failback", immediate=True)
 			time.sleep(0.5)
 
 		self.SetState("enabling")

@@ -17,6 +17,7 @@ DRBD_DIR = "/etc/drbd.d"
 STATES = [
 	"starting",
 	"waiting",
+	"failback",
 	"enabling",
 	"master",
 	"disabling",
@@ -306,14 +307,14 @@ class Monitor(threading.Thread):
 						elif self.status.peer in [ "master" ]:
 							log("Oops, we have a split brain")
 
-						elif self.status.peer in [ "enabling" ]:
+						elif self.status.peer in [ "enabling", "failback" ]:
 							log("Peer is transitioning to master")
 							self.status.Disable()
 
 						else:
 							log("Oops, peer state is wrong")
 
-				elif self.status.state in [ "slave", "enabling" ]:
+				elif self.status.state in [ "slave", "enabling", "failback" ]:
 					if self.listener.server.config.role == "master":
 						if   self.status.peer in [ "starting", "waiting", "slave", "unknown" ]:
 							log("We are supposed to be master, peer is slave or not ready")
@@ -361,7 +362,7 @@ class Monitor(threading.Thread):
 					log("Peer is down")
 					self.status.Enable()
 
-				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
+				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown", "failback" ]:
 					log("We are transitioning, wait for us to finish")
 
 				elif self.status.state in [ "shutdown" ]:
@@ -422,14 +423,18 @@ class Status():
 	def NotifyMasterTransition(self):
 		log("Notifying that we are transitioning to master")
 
-		self.monitor.pinger.send("enabling")
+		if self.config.role == "master":
+			self.SetState("failback")
+			time.sleep(0.5)
+
+		self.SetState("enabling")
 
 	def Enable(self):
 		if self.state == "shutdown":
 			return
 
 		if self.state != "enabling":
-			self.NotifyMasterTransition()
+			self.SetState("enabling")
 
 		log("Transitioning to master")
 

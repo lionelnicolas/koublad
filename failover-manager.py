@@ -421,7 +421,7 @@ def signal_handler(signum, frame):
 
 	loop = False
 
-	if signum == signal.SIGINT:
+	if signum in [ signal.SIGINT, signal.SIGTERM ]:
 		listener.stop()
 		monitor.stop()
 		pinger.stop()
@@ -435,7 +435,8 @@ def main():
 	config = Config()
 	config.Show()
 
-	signal.signal(signal.SIGINT, signal_handler)
+	signal.signal(signal.SIGINT,  signal_handler)
+	signal.signal(signal.SIGTERM, signal_handler)
 
 	listener = Listener(config)
 	monitor  = Monitor(config, listener)

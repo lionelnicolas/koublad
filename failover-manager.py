@@ -325,6 +325,9 @@ class Monitor(threading.Thread):
 				elif self.status.state in [ "starting", "waiting", "disabling", "unknown" ]:
 					log("We are transitioning, wait for us to finish")
 
+				elif self.status.state in [ "shutdown" ]:
+					log("We are shutting down ...")
+
 				else:
 					log("Oops, our state is wrong")
 
@@ -342,6 +345,9 @@ class Monitor(threading.Thread):
 
 				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
 					log("We are transitioning, wait for us to finish")
+
+				elif self.status.state in [ "shutdown" ]:
+					log("We are shutting down ...")
 
 				else:
 					log("Oops, our state is wrong")
@@ -374,8 +380,11 @@ class Status():
 		self.peer = newstate
 
 		if oldstate and newstate != oldstate:
-			if newstate == "unknown":
+			if   newstate == "unknown":
 				log("Peer is down")
+
+			elif newstate == "shutdown":
+				log("Peer is shutting down")
 
 			else:
 				log("Peer state is now '%s'" % (newstate))
@@ -394,6 +403,9 @@ class Status():
 		self.SetState("enabling")
 
 	def Enable(self):
+		if self.state == "shutdown":
+			return
+
 		if self.state != "enabling":
 			self.NotifyMasterTransition()
 
@@ -405,6 +417,9 @@ class Status():
 		log("We are now master")
 
 	def Disable(self):
+		if self.state == "slave":
+			return
+
 		log("Transitioning to slave")
 
 		self.SetState("disabling")
@@ -412,6 +427,11 @@ class Status():
 		self.SetState("slave")
 
 		log("We are now slave")
+
+	def Shutdown(self):
+		log("Initiating shutdown ...")
+
+		self.Disable()
 
 def signal_handler(signum, frame):
 	global listener
@@ -422,6 +442,8 @@ def signal_handler(signum, frame):
 	loop = False
 
 	if signum in [ signal.SIGINT, signal.SIGTERM ]:
+		monitor.status.Shutdown()
+
 		listener.stop()
 		monitor.stop()
 		pinger.stop()

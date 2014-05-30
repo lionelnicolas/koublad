@@ -443,6 +443,7 @@ class Status():
 	def Shutdown(self):
 		log("Initiating shutdown ...")
 
+		self.monitor.pinger.send("shutdown")
 		self.Disable()
 
 def signal_handler(signum, frame):

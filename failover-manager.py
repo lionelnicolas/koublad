@@ -285,6 +285,9 @@ class Monitor(threading.Thread):
 
 		while self.loop:
 			if self.listener.server.got_remote_ping.wait(self.config.timeout):
+				if not self.loop:
+					continue
+
 				self.status.SetPeerState(self.listener.server.last_udp_data)
 
 				if self.status.state == "master":
@@ -341,6 +344,9 @@ class Monitor(threading.Thread):
 					log("Oops, our state is wrong")
 
 			else:
+				if not self.loop:
+					continue
+
 				self.status.SetPeerState("unknown")
 
 				if   self.status.state == "master":
@@ -457,8 +463,8 @@ def signal_handler(signum, frame):
 	if signum in [ signal.SIGINT, signal.SIGTERM ]:
 		monitor.status.Shutdown()
 
-		listener.stop()
 		monitor.stop()
+		listener.stop()
 		pinger.stop()
 
 def main():
@@ -477,8 +483,8 @@ def main():
 	pinger   = Pinger(config)
 	monitor  = Monitor(config, listener, pinger)
 
-	listener.start()
 	monitor.start()
+	listener.start()
 	pinger.start()
 
 	while loop:

@@ -271,14 +271,80 @@ class Monitor(threading.Thread):
 	def run(self):
 		log("Starting monitor")
 
+		self.status.SetDead()
+		# TODO: get current "real" state (DRBD, services ???)
+
 		while self.loop:
 			if self.listener.server.got_remote_ping.wait(self.config.timeout):
-				monitor.state.role = self.listener.server.config.role
-				monitor.state.peer = "up/%s" % (self.listener.server.last_udp_data)
+				self.status.SetPeerState(self.listener.server.last_udp_data)
+
+				if self.status.state == "master":
+					if self.listener.server.config.role == "master":
+						if self.status.pstate != "master":
+							log("We are already master, so do nothing ...")
+							self.status.SetState("master")
+
+					else:
+						if   self.status.peer in [ "starting", "waiting", "disabling", "slave", "unknown" ]:
+							log("We are currently master, the legitimate master is slave or not ready")
+
+						elif self.status.peer in [ "master" ]:
+							log("Oops, we have a split brain")
+
+						elif self.status.peer in [ "enabling" ]:
+							log("Peer is transitioning to master")
+							self.status.Disable()
+
+						else:
+							log("Oops, peer state is wrong")
+
+				elif self.status.state in [ "slave", "enabling" ]:
+					if self.listener.server.config.role == "master":
+						if   self.status.peer in [ "starting", "waiting", "slave", "unknown" ]:
+							log("We are supposed to be master, peer is slave or not ready")
+							self.status.Enable()
+
+						elif self.status.peer in [ "disabling" ]:
+							log("We are supposed to be master, peer is transitioning to slave, wait for him to shutdown")
+
+						elif self.status.peer in [ "enabling" ]:
+							log("We are supposed to be master, peer is transitioning to master, wait for him to come up")
+
+						elif self.status.peer in [ "master" ]:
+							log("We are supposed to be master, peer is currently master, tell him to transition to slave")
+							self.status.NotifyMasterTransition()
+
+						else:
+							log("Oops, peer state is wrong")
+
+					else:
+						if self.status.pstate != "slave":
+							log("We are already slave, so do nothing ...")
+							self.status.SetState("slave")
+
+				elif self.status.state in [ "starting", "waiting", "disabling", "unknown" ]:
+					log("We are transitioning, wait for us to finish")
+
+				else:
+					log("Oops, our state is wrong")
 
 			else:
-				monitor.state.role = "master"
-				monitor.state.peer = "down/unknown"
+				self.status.SetPeerState("unknown")
+
+				if   self.status.state == "master":
+					if self.status.pstate != "master":
+						log("We are already master, so do nothing ...")
+						self.status.SetState("master")
+
+				elif self.status.state == "slave":
+					log("Peer is down")
+					self.status.Enable()
+
+				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
+					log("We are transitioning, wait for us to finish")
+
+				else:
+					log("Oops, our state is wrong")
 
 			self.listener.server.got_remote_ping.clear()
 

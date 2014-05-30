@@ -44,6 +44,10 @@ def error(text):
 	sys.stderr.flush()
 
 def log(text):
+	global monitor
+
+	monitor.status.Show()
+
 	sys.stdout.write("%s\n" % text)
 	sys.stdout.flush()
 
@@ -277,7 +281,6 @@ class Monitor(threading.Thread):
 				monitor.state.peer = "down/unknown"
 
 			self.listener.server.got_remote_ping.clear()
-			self.state.Show()
 
 		log("Monitor stopped")
 

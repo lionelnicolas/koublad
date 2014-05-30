@@ -13,6 +13,16 @@ import time
 CONFIG   = "/etc/failover.conf"
 DRBD_DIR = "/etc/drbd.d"
 
+STATES = [
+	"starting",
+	"waiting",
+	"enabling",
+	"master",
+	"disabling",
+	"slave",
+	"unknown",
+]
+
 RE_CONFIG_LINE   = re.compile("^[\ \t]*([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
 RE_CONFIG_PEER   = re.compile("^([^:]+):([0-9]+)$")
 RE_DRBD_RESOURCE = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")

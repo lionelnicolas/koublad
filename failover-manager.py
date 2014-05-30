@@ -242,6 +242,7 @@ class Pinger(threading.Thread):
 		self.config = config
 		self.loop   = True
 		self.sock   = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.wakeup = threading.Event()
 
 	def run(self):
 		log("Starting pinger")
@@ -249,8 +250,9 @@ class Pinger(threading.Thread):
 		global monitor
 
 		while self.loop:
-			self.sock.sendto("%s" % (monitor.status.state), (self.config.peer_host, self.config.peer_port))
-			time.sleep(self.config.interval)
+			self.send(monitor.status.state)
+			self.wakeup.wait(self.config.interval)
+			self.wakeup.clear()
 
 		log("Pinger stopped")
 
@@ -259,14 +261,21 @@ class Pinger(threading.Thread):
 
 		self.loop = False
 
+	def wake(self):
+		self.wakeup.set()
+
+	def send(self, data):
+		self.sock.sendto(data, (self.config.peer_host, self.config.peer_port))
+
 class Monitor(threading.Thread):
-	def __init__(self, config, listener):
+	def __init__(self, config, listener, pinger):
 		threading.Thread.__init__(self)
 
 		self.config   = config
 		self.listener = listener
+		self.pinger   = pinger
 		self.loop     = True
-		self.status   = Status(self.config)
+		self.status   = Status(self, self.config)
 
 	def run(self):
 		log("Starting monitor")
@@ -362,11 +371,12 @@ class Monitor(threading.Thread):
 		self.loop = False
 
 class Status():
-	def __init__(self, config):
-		self.pstate = "unknown"
-		self.state  = "starting"
-		self.peer   = False
-		self.config = config
+	def __init__(self, monitor, config):
+		self.monitor = monitor
+		self.pstate  = "unknown"
+		self.state   = "starting"
+		self.peer    = False
+		self.config  = config
 
 	def Show(self):
 		sys.stdout.write("state:%-9s peer:%-9s -- " % (self.state, self.peer))
@@ -374,6 +384,8 @@ class Status():
 	def SetState(self, newstate):
 		self.pstate = self.state
 		self.state  = newstate
+
+		self.monitor.pinger.wake()
 
 	def SetPeerState(self, newstate):
 		oldstate  = self.peer
@@ -461,8 +473,8 @@ def main():
 	signal.signal(signal.SIGTERM, signal_handler)
 
 	listener = Listener(config)
-	monitor  = Monitor(config, listener)
 	pinger   = Pinger(config)
+	monitor  = Monitor(config, listener, pinger)
 
 	listener.start()
 	monitor.start()

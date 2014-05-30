@@ -297,7 +297,6 @@ class Monitor(threading.Thread):
 				if self.status.state == "master":
 					if self.listener.server.config.role == "master":
 						if self.status.pstate != "master":
-							log("We are already master, so do nothing ...")
 							self.status.SetState("master")
 
 					else:
@@ -335,7 +334,6 @@ class Monitor(threading.Thread):
 
 					else:
 						if self.status.pstate != "slave":
-							log("We are already slave, so do nothing ...")
 							self.status.SetState("slave")
 
 				elif self.status.state in [ "starting", "waiting", "disabling", "unknown" ]:
@@ -355,11 +353,9 @@ class Monitor(threading.Thread):
 
 				if   self.status.state == "master":
 					if self.status.pstate != "master":
-						log("We are already master, so do nothing ...")
 						self.status.SetState("master")
 
 				elif self.status.state == "slave":
-					log("Peer is down")
 					self.status.Enable()
 
 				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown", "failback" ]:

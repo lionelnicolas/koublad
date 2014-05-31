@@ -355,10 +355,10 @@ class Monitor(threading.Thread):
 					if self.status.pstate != "master":
 						self.status.SetState("master")
 
-				elif self.status.state == "slave":
+				elif self.status.state in [ "slave", "failback" ]:
 					self.status.Enable()
 
-				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown", "failback" ]:
+				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
 					log("We are transitioning, wait for us to finish")
 
 				elif self.status.state in [ "shutdown" ]:
@@ -426,8 +426,6 @@ class Status():
 		if self.config.role == "master":
 			self.SetState("failback", immediate=True)
 			time.sleep(0.5)
-
-		self.SetState("enabling")
 
 	def Enable(self):
 		if self.state == "shutdown":

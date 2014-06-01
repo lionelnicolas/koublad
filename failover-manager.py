@@ -420,6 +420,8 @@ class Status():
 		time.sleep(self.config.initdead)
 		self.SetState("slave")
 
+		log("We are now slave")
+
 	def NotifyMasterTransition(self):
 		log("Notifying that we are transitioning to master")
 

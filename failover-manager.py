@@ -11,8 +11,11 @@ import sys
 import threading
 import time
 
-CONFIG   = "/etc/failover.conf"
-DRBD_DIR = "/etc/drbd.d"
+import plugins
+
+CONFIG     = "/etc/failover.conf"
+PLUGIN_DIR = "plugins/"
+DRBD_DIR   = "/etc/drbd.d"
 
 STATES = [
 	"starting",
@@ -63,11 +66,19 @@ class Config():
 		self.services   = list()
 		self.drbd_res   = list()
 		self.drbd       = Drbd()
+		self.plugin_dir = PLUGIN_DIR
+		self.quorum     = False
+		self.switcher   = False
 
 		if len(sys.argv) > 1:
 			self.configfile = sys.argv[1]
 
 		self.Parse()
+
+		plugins.GetPlugins(self.plugin_dir)
+
+		if self.quorum:   self.quorum   = plugins.LoadPlugin("quorum",   self.quorum)
+		if self.switcher: self.switcher = plugins.LoadPlugin("switcher", self.switcher)
 
 	def Parse(self):
 		if not os.path.isfile(self.configfile):
@@ -137,6 +148,18 @@ class Config():
 						if resource not in self.drbd.resources.keys():
 							fail("DRBD resource '%s' does not exist" % (resource))
 
+				elif name == "plugin_dir":
+					if not os.path.isdir(value):
+						fail("Plugin directory '%s' does not exist" % (value))
+
+					self.plugin_dir = value
+
+				elif name == "quorum_plugin":
+					self.quorum = value
+
+				elif name == "switcher_plugin":
+					self.switcher = value
+
 				else:
 					fail("Bad configuration value '%s'" % (name))
 
@@ -160,6 +183,7 @@ class Config():
 			return value.split(',')
 
 	def Show(self):
+		print
 		print "%-12s: %s"   % ("configfile", self.configfile)
 		print "%-12s: %d"   % ("port", self.port)
 		print "%-12s: %s"   % ("role", self.role)
@@ -170,6 +194,9 @@ class Config():
 		print "%-12s: %.1f" % ("interval", self.interval)
 		print "%-12s: %s"   % ("services", self.services)
 		print "%-12s: %s"   % ("drbd_res", self.drbd_res)
+		print "%-12s: %s"   % ("plugin_dir", self.plugin_dir)
+		print "%-12s: %s"   % ("quorum", self.quorum)
+		print "%-12s: %s"   % ("switcher", self.switcher)
 		print
 
 class Drbd:
@@ -477,6 +504,7 @@ def main():
 
 	config = Config()
 	config.Show()
+	plugins.ListPlugins()
 
 	signal.signal(signal.SIGINT,  signal_handler)
 	signal.signal(signal.SIGTERM, signal_handler)

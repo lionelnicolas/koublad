@@ -394,9 +394,9 @@ class Status():
 
 		self.monitor.pinger.wake()
 
-                # Instantly send the new state to peer, without waiting for pinger mainloop
-                if immediate:
-                    self.monitor.pinger.send(newstate)
+		# Instantly send the new state to peer, without waiting for pinger mainloop
+		if immediate:
+			self.monitor.pinger.send(newstate)
 
 	def SetPeerState(self, newstate):
 		oldstate  = self.peer

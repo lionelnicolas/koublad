@@ -11,7 +11,8 @@ CONFIG_FILE = "/etc/failover.conf"
 DRBD_DIR    = "/etc/drbd.d"
 PLUGIN_DIR  = "plugins/"
 
-RE_CONFIG_LINE   = re.compile("^[\ \t]*([a-zA-Z0-9_\.]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
+RE_CONFIG_LINE   = re.compile("^[\ \t]*()([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
+RE_CONFIG_LINE_P = re.compile("^[\ \t]*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
 RE_DRBD_RESOURCE = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
 
 config_checks = {
@@ -68,6 +69,9 @@ def checkValue(name, value, check):
 	elif type(value) == str: return eval("\"%s\" %s" % (value, check))
 	else:                    return eval("%.1f %s" % (value, check))
 
+def checkNonEmptyList(value):
+	return len(value) != 0
+
 def checkDrbdResources(resources):
 	global drbd_dir
 
@@ -117,15 +121,57 @@ def checkFile(filepath):
 def checkDirectory(dirpath):
 	return os.path.isdir(dirpath) or fail("Directory '%s' does not exist." % (dirpath))
 
-def show():
+def defaultVariables(config_checks):
+	config_dict = dict()
+
+	for name in config_checks.keys():
+		config_dict[name] = config_checks[name]['default']
+
+	return config_dict
+
+def parseConfigurationFile(config_file, config_checks, config_optional, config_dict, plugin_name=False):
+	for line in open(config_file).readlines():
+		if plugin_name:
+			match = RE_CONFIG_LINE_P.match(line)
+		else:
+			match = RE_CONFIG_LINE.match(line)
+
+		if match:
+			plugin = match.group(1)
+			name   = match.group(2).strip()
+			value  = match.group(3).replace('\t', '').replace(' ', '').strip()
+
+			if plugin_name and plugin != plugin_name:
+				print "non-matching plugin %s -- %s" % (plugin, plugin_name)
+
+			if name in config_checks.keys():
+				vartype           = config_checks[name]['type']
+				check             = config_checks[name]['check']
+				config_dict[name] = convertType(name, value, vartype)
+				res               = checkValue(name, config_dict[name], check)
+
+				if not res:
+					fail("Parameter '%s' validation failed (%s)" % (name, check))
+
+
+	# check mandatory variables
+	for name in config_checks.keys():
+		if name not in config_optional and config_dict[name] == False:
+			fail("Parameter '%s' cannot be empty or unset" % (name))
+
+	return config_dict
+
+def show(data=False):
 	global config_dict
 
-	keys = config_dict.keys()
+	if not data:
+		data = config_dict
+
+	keys = data.keys()
 	keys.sort()
 
-	print
 	for name in keys:
-		print "%-16s: %s" % (name, config_dict[name])
+		print "%-16s: %s" % (name, data[name])
 	print
 
 
@@ -144,32 +190,11 @@ checkDirectory(drbd_dir)
 
 
 # set default values
-for name in config_checks.keys():
-	config_dict[name] = config_checks[name]['default']
+config_dict = defaultVariables(config_checks)
 
 
 # parse configuration file
-for line in open(config_file).readlines():
-	match = RE_CONFIG_LINE.match(line)
-
-	if match:
-		name   = match.group(1).strip()
-		value  = match.group(2).replace('\t', '').replace(' ', '').strip()
-
-		if name in config_checks.keys():
-			vartype           = config_checks[name]['type']
-			check             = config_checks[name]['check']
-			config_dict[name] = convertType(name, value, vartype)
-			res               = checkValue(name, config_dict[name], check)
-
-			if not res:
-				fail("Parameter '%s' validation failed (%s)" % (name, check))
-
-
-# check mandatory variables
-for name in config_checks.keys():
-	if name not in config_optional and config_dict[name] == False:
-		fail("Parameter '%s' cannot be empty or unset" % (name))
+config_dict = parseConfigurationFile(config_file, config_checks, config_optional, config_dict)
 
 
 # set variable globaly (seems ugly to use exec(), maybe use globals() dict in the future

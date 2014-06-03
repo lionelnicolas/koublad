@@ -319,6 +319,11 @@ def main():
 	global monitor
 
 	config.show()
+	plugins.show()
+
+	plugins.loadQuorum(config.quorum_plugin)
+	plugins.loadSwitcher(config.switcher_plugin)
+	print
 
 	signal.signal(signal.SIGINT,  signal_handler)
 	signal.signal(signal.SIGTERM, signal_handler)

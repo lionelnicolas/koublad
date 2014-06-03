@@ -5,83 +5,77 @@ import os
 import re
 import sys
 
-RE_PLUGIN_FILE = re.compile("^([^_]+)_(.*)\.py$")
+RE_PLUGIN_FILE = re.compile("^([^\.]+)\.py$")
 
-plugins = False
+found    = dict()
+quorum   = False
+switcher = False
 
-class Plugins():
-	# plugins used to switch IP address to master
-	switcher = dict()
+def search(plugin_dir):
+	global found
 
-	# plugins used to get third party quorum
-	quorum = dict()
+	for subdir in os.listdir(plugin_dir):
+		if not os.path.isdir(os.path.join(plugin_dir, subdir)):
+			continue
 
-def GetPlugins(plugindir):
-	global plugins
+		for filename in os.listdir(os.path.join(plugin_dir, subdir)):
+			if not os.path.isfile(os.path.join(plugin_dir, subdir, filename)):
+				continue
 
-	plugins = Plugins()
+			match = RE_PLUGIN_FILE.match(filename)
 
-	for filename in os.listdir(plugindir):
-		match = RE_PLUGIN_FILE.match(filename)
+			if match:
+				plugin_type = subdir
+				plugin_name = match.group(1)
+				plugin_desc = imp.find_module(plugin_name, [os.path.join(plugin_dir, plugin_type)])
 
-		if match:
-			plugin_type = match.group(1)
-			plugin_name = match.group(2)
+				if not found.has_key(plugin_type):
+					found[plugin_type] = dict()
 
-			plugin_desc = imp.find_module("%s_%s" % (plugin_type, plugin_name), [plugindir])
+				found[plugin_type][plugin_name] = plugin_desc
 
-			if   plugin_type == "quorum":
-				plugins.quorum[plugin_name] = plugin_desc
+	return found
 
-			elif plugin_type == "switcher":
-				plugins.switcher[plugin_name] = plugin_desc
+def load(plugin_type, plugin_name):
+	global found
 
-	return plugins
-
-def LoadPlugin(plugin_type, plugin_name):
-	global plugins
-
-	if not plugins:
-		sys.stderr.write("Plugins detection has not been done, please call GetPlugins(plugin_path) first.\n")
+	if not found:
+		sys.stderr.write("Plugins detection has not been done, please call plugins.search(plugin_dir) first.\n")
 		return False
 
-	if   plugin_type == "quorum":
-		plugin = plugins.quorum[plugin_name]
-	elif plugin_type == "switcher":
-		plugin = plugins.quorum[plugin_name]
-	else:
-		return False
+	if found.has_key(plugin_type) and found[plugin_type].has_key(plugin_name):
+		return imp.load_module("%s_%s" % (plugin_type, plugin_name), *found[plugin_type][plugin_name])
 
-	return imp.load_module("%s_%s" % (plugin_type, plugin_name), *plugin)
+	return False
 
-def ListPlugins():
-	global plugins
+def loadQuorum(quorum_plugin):
+	global quorum
 
-	if not plugins:
-		sys.stderr.write("Plugins detection has not been done, please call GetPlugins(plugin_path) first.\n")
+	# load quorum plugin if any
+	if quorum_plugin:
+		quorum = load("quorum", quorum_plugin) or fail("Failed to load quorum plugin '%s'" % (quorum_plugin))
+
+def loadSwitcher(switcher_plugin):
+	global switcher
+
+	# load switcher plugin if any
+	if switcher_plugin:
+		switcher = load("switcher", switcher_plugin) or fail("Failed to load switcher plugin '%s'" % (switcher_plugin))
+
+def show():
+	global found
+
+	if not found:
+		sys.stderr.write("Plugins detection has not been done, please call plugins.search(plugin_dir) first.\n")
 		return False
 
 	print "Found plugins :"
 
-	print "    Quorum :"
-	for plugin in plugins.quorum.keys():
-		print "        %s -- %s" % (plugin, plugins.quorum[plugin][1])
-	print
-
-	print "    Failover switcher :"
-	for plugin in plugins.switcher.keys():
-		print "        %s -- %s" % (plugin, plugins.switcher[plugin][1])
-	print
+	for plugin_type in found.keys():
+		print "    %s :" % (plugin_type.title())
+		for plugin_name in found[plugin_type].keys():
+			print "        %s -- %s" % (plugin_name, found[plugin_type][plugin_name][1])
+		print
 
 	return True
-
-def test():
-	global plugins
-
-	GetPlugins("plugins")
-
-	ListPlugins(plugins)
-
-	quorum = LoadPlugin("quorum", "http")
-	quorum.caca()
 

@@ -5,6 +5,8 @@ import os
 import re
 import sys
 
+import plugins
+
 CONFIG_FILE = "/etc/failover.conf"
 DRBD_DIR    = "/etc/drbd.d"
 PLUGIN_DIR  = "plugins/"
@@ -173,4 +175,8 @@ for name in config_checks.keys():
 # set variable globaly (seems ugly to use exec(), maybe use globals() dict in the future
 for name in config_checks.keys():
 	exec("%s = config_dict[name]" % (name))
+
+
+# search for plugins
+plugins.search(plugin_dir)
 

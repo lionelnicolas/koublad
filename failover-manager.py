@@ -318,6 +318,8 @@ def main():
 	global loop
 	global monitor
 
+	config.show()
+
 	signal.signal(signal.SIGINT,  signal_handler)
 	signal.signal(signal.SIGTERM, signal_handler)
 

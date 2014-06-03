@@ -27,6 +27,13 @@ config_checks = {
 	"switcher_plugin": { "type": "str",   "default": False,      "check": "checkSwitcherPlugin(value)" },
 }
 
+config_optional = [
+	"quorum_plugin",
+	"switcher_plugin",
+]
+
+config_dict = dict()
+
 def fail(text, code=1):
 	sys.stderr.write("%s\n" % text)
 	sys.stderr.flush()
@@ -41,15 +48,15 @@ def convertType(name, value, vartype):
 	ret   = False
 	value = value.strip()
 
-	if vartype == "list":
-		ret = splitIntoList(value)
+	try:
+		if   vartype == "list":  ret = splitIntoList(value)
+		elif len(value) == 0:    ret = False
+		elif vartype == "int":   ret = int(value)
+		elif vartype == "float": ret = float(value)
+		else:                    ret = str(value)
 
-	elif not len(value):
-		return False
-
-	else:
-		try:    exec("ret = %s(\"%s\")" % (vartype, value))
-		except: fail("Parameter '%s' should be a %s" % (name, vartype))
+	except ValueError:
+		fail("Parameter '%s' should be a %s" % (name, vartype))
 
 	return ret
 
@@ -87,20 +94,20 @@ def checkServices(services):
 	return True
 
 def checkQuorumPlugin(filepath):
-	global plugin_dir
+	global config_dict
 
 	if not filepath:
 		return True
 
-	return os.path.isfile(os.path.join(plugin_dir, "quorum", "%s.py" % filepath)) or fail("Quorum plugin '%s' does not exist." % (filepath))
+	return os.path.isfile(os.path.join(config_dict['plugin_dir'], "quorum", "%s.py" % filepath)) or fail("Quorum plugin '%s' does not exist." % (filepath))
 
 def checkSwitcherPlugin(filepath):
-	global plugin_dir
+	global config_dict
 
 	if not filepath:
 		return True
 
-	return os.path.isfile(os.path.join(plugin_dir, "switcher", "%s.py" % filepath)) or fail("Switcher plugin '%s' does not exist." % (filepath))
+	return os.path.isfile(os.path.join(config_dict['plugin_dir'], "switcher", "%s.py" % filepath)) or fail("Switcher plugin '%s' does not exist." % (filepath))
 
 def checkFile(filepath):
 	return os.path.isfile(filepath) or fail("File '%s' does not exist." % (filepath))
@@ -108,6 +115,16 @@ def checkFile(filepath):
 def checkDirectory(dirpath):
 	return os.path.isdir(dirpath) or fail("Directory '%s' does not exist." % (dirpath))
 
+def show():
+	global config_dict
+
+	keys = config_dict.keys()
+	keys.sort()
+
+	print
+	for name in keys:
+		print "%-16s: %s" % (name, config_dict[name])
+	print
 
 if len(sys.argv) > 1: config_file = sys.argv[1]
 else:                 config_file = CONFIG_FILE
@@ -119,7 +136,7 @@ checkFile(config_file)
 checkDirectory(drbd_dir)
 
 for name in config_checks.keys():
-	exec ("%s = config_checks['%s']['default']" % (name, name))
+	config_dict[name] = config_checks[name]['default']
 
 for line in open(config_file).readlines():
 	match = RE_CONFIG_LINE.match(line)
@@ -129,21 +146,18 @@ for line in open(config_file).readlines():
 		value  = match.group(2).replace('\t', '').replace(' ', '').strip()
 
 		if name in config_checks.keys():
-			vartype = config_checks[name]['type']
-			check   = config_checks[name]['check']
-			value   = convertType(name, value, vartype)
-			res     = checkValue(name, value, check)
+			vartype           = config_checks[name]['type']
+			check             = config_checks[name]['check']
+			config_dict[name] = convertType(name, value, vartype)
+			res               = checkValue(name, config_dict[name], check)
 
 			if not res:
 				fail("Parameter '%s' validation failed (%s)" % (name, check))
 
-			exec("%s = value" % (name))
-			if not name.endswith("_plugin") and eval("value == False"):
-				fail("Parameter '%s' cannot be empty or unset" % (name))
 
 for name in config_checks.keys():
-	if not name.endswith("_plugin") and eval("%s == False" % (name)):
+	if name not in config_optional and config_dict[name] == False:
 		fail("Parameter '%s' cannot be empty or unset" % (name))
 
-	print "%-16s: %s" % (name, eval("%s" % (name)))
+	exec("%s = config_dict[name]" % (name))
 

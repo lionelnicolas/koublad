@@ -18,6 +18,7 @@ STATES = [
 	"starting",
 	"waiting",
 	"failback",
+	"failover",
 	"enabling",
 	"master",
 	"disabling",
@@ -150,14 +151,14 @@ class Monitor(threading.Thread):
 						elif self.status.peer in [ "master" ]:
 							log("Oops, we have a split brain")
 
-						elif self.status.peer in [ "enabling", "failback" ]:
+						elif self.status.peer in [ "enabling", "failback", "failover" ]:
 							log("Peer is transitioning to master")
 							self.status.Disable()
 
 						else:
 							log("Oops, peer state is wrong")
 
-				elif self.status.state in [ "slave", "enabling", "failback" ]:
+				elif self.status.state in [ "slave", "enabling", "failback", "failover" ]:
 					if config.role == "master":
 						if   self.status.peer in [ "starting", "waiting", "slave", "unknown" ]:
 							log("We are supposed to be master, peer is slave or not ready")
@@ -199,7 +200,22 @@ class Monitor(threading.Thread):
 					if self.status.pstate != "master":
 						self.status.SetState("master")
 
-				elif self.status.state in [ "slave", "failback" ]:
+				elif self.status.state == "slave":
+					if config.role == "master":
+						self.status.NotifyMasterTransition()
+
+					elif plugins.quorum:
+						if plugins.quorum.get():
+							log("We have enough quorum to failover to us")
+							self.status.NotifyMasterTransition()
+						else:
+							log("We have not enough quorum to require failover to us")
+
+					elif not plugins.quorum:
+						log("No quorum plugin defined, require failover to us")
+						self.status.NotifyMasterTransition()
+
+				elif self.status.state in [ "failback", "failover" ]:
 					self.status.Enable()
 
 				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
@@ -270,6 +286,10 @@ class Status():
 
 		if config.role == "master":
 			self.SetState("failback", immediate=True)
+			time.sleep(0.5)
+
+		elif config.role == "slave":
+			self.SetState("failover", immediate=True)
 			time.sleep(0.5)
 
 	def Enable(self):

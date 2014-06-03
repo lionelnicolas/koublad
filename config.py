@@ -126,18 +126,27 @@ def show():
 		print "%-16s: %s" % (name, config_dict[name])
 	print
 
+
+# set configuration file path
 if len(sys.argv) > 1: config_file = sys.argv[1]
 else:                 config_file = CONFIG_FILE
 
+checkFile(config_file)
+
+
+# set DRBD configuration directory
 if len(sys.argv) > 2: drbd_dir = sys.argv[2]
 else:                 drbd_dir = DRBD_DIR
 
-checkFile(config_file)
 checkDirectory(drbd_dir)
 
+
+# set default values
 for name in config_checks.keys():
 	config_dict[name] = config_checks[name]['default']
 
+
+# parse configuration file
 for line in open(config_file).readlines():
 	match = RE_CONFIG_LINE.match(line)
 
@@ -155,9 +164,13 @@ for line in open(config_file).readlines():
 				fail("Parameter '%s' validation failed (%s)" % (name, check))
 
 
+# check mandatory variables
 for name in config_checks.keys():
 	if name not in config_optional and config_dict[name] == False:
 		fail("Parameter '%s' cannot be empty or unset" % (name))
 
+
+# set variable globaly (seems ugly to use exec(), maybe use globals() dict in the future
+for name in config_checks.keys():
 	exec("%s = config_dict[name]" % (name))
 

@@ -76,6 +76,8 @@ def checkNonEmptyList(value):
 def checkDrbdResources(resources):
 	global drbd_dir
 
+	resources_dup = list(resources)
+
 	for res in glob.glob("%s/*.res" % (drbd_dir)):
 		resource = False
 
@@ -86,10 +88,10 @@ def checkDrbdResources(resources):
 				resource = match.group(1)
 
 				if resources.count(resource):
-					resources.remove(resource)
+					resources_dup.remove(resource)
 
-	if len(resources):
-		fail("The following DRBD resources do not exist: %s" % (resources))
+	if len(resources_dup):
+		fail("The following DRBD resources do not exist: %s" % (resources_dup))
 
 	return True
 

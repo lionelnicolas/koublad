@@ -14,7 +14,7 @@ config_optional = [
 ]
 
 def ping(host):
-	pipe = subprocess.Popen(["/bin/ping", "-c5", "-w3", "-i0.2", host], stdout=subprocess.PIPE)
+	pipe = subprocess.Popen(["/bin/ping", "-c5", "-w3", "-i0.2", host], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	res  = pipe.poll()
 
 	while res == None:

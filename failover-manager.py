@@ -111,7 +111,10 @@ class Pinger(threading.Thread):
 		self.wakeup.set()
 
 	def send(self, data):
-		self.sock.sendto(data, (config.peer_host, config.peer_port))
+		try:
+			self.sock.sendto(data, (config.peer_host, config.peer_port))
+		except Exception, e:
+			log("Failed to send data (%s)" % (e))
 
 class Monitor(threading.Thread):
 	def __init__(self, listener, pinger):

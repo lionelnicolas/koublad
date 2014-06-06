@@ -154,6 +154,8 @@ class Monitor(threading.Thread):
 
 						elif self.status.peer in [ "master" ]:
 							log("Oops, we have a split brain")
+							log("Disabling everything")
+							self.status.Disable()
 
 						elif self.status.peer in [ "enabling", "failback", "failover" ]:
 							log("Peer is transitioning to master")

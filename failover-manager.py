@@ -206,11 +206,15 @@ class Monitor(threading.Thread):
 					if self.status.pstate != "master":
 						self.status.SetState("master")
 
-				elif self.status.state == "slave":
-					if config.role == "master":
-						self.status.NotifyMasterTransition()
+					if plugins.quorum:
+						if plugins.quorum.get():
+							log("We have enough quorum to remain master")
+						else:
+							log("We have not enough quorum to remain master")
+							self.status.Disable()
 
-					elif plugins.quorum:
+				elif self.status.state == "slave":
+					if plugins.quorum:
 						if plugins.quorum.get():
 							log("We have enough quorum to failover to us")
 							self.status.NotifyMasterTransition()

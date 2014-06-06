@@ -255,7 +255,7 @@ class Status():
 		self.peer    = False
 
 	def Show(self):
-		sys.stdout.write("state:%-9s peer:%-9s -- " % (self.state, self.peer))
+		sys.stdout.write("%5.1f state:%-9s peer:%-9s -- " % (time.time() % 100, self.state, self.peer))
 
 	def SetState(self, newstate, immediate=False):
 		self.pstate = self.state

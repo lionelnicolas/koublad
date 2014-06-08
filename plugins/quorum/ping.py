@@ -14,14 +14,20 @@ config_checks = {
 config_optional = [
 ]
 
-def ping(host):
-	pipe = subprocess.Popen(["/bin/ping", "-c5", "-w3", "-i0.2", host], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	res  = pipe.poll()
+def ping(host, count, interval, timeout):
+	pipe  = subprocess.Popen(["/bin/ping", "-n", "-c%d" % count, "-w%.1f" % timeout, "-i%.1f" % interval , host], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	res   = pipe.poll()
+	start = time.time()
 
-	while res == None:
+	while res == None and time.time() - start < timeout + 1:
 		res = pipe.poll()
-		time.sleep(0.05)
+		time.sleep(0.1)
 	
+	if res == None:
+		pipe.kill()
+		sys.stdout.write("Killed ping to %s" % (host))
+		res = 1
+
 	return res
 
 
@@ -33,7 +39,7 @@ def get():
 
 	res = 0
 	for host in hosts:
-		res += ping(host)
+		res += ping(host, 3, 0.2, 3)
 	
 	return not res
 

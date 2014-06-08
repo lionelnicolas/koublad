@@ -126,6 +126,8 @@ class Monitor(threading.Thread):
 		self.loop     = True
 		self.status   = Status(self)
 
+		self.quorum_ok = 0
+
 	def run(self):
 		log("Starting monitor")
 
@@ -217,8 +219,14 @@ class Monitor(threading.Thread):
 				elif self.status.state == "slave":
 					if plugins.quorum:
 						if plugins.quorum.get():
-							log("We have enough quorum to failover to us")
-							self.status.NotifyMasterTransition()
+							if self.quorum_ok < 3:
+								log("We have enough quorum to failover to us, but wait for few attempts")
+								self.quorum_ok += 1
+
+							else:
+								log("We have enough quorum to failover to us")
+								self.status.NotifyMasterTransition()
+								self.quorum_ok = 0
 						else:
 							log("We have not enough quorum to require failover to us")
 

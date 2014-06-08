@@ -12,6 +12,7 @@ import sys
 import threading
 import time
 
+import drbd
 import config
 import plugins
 
@@ -348,8 +349,11 @@ def main():
 	global loop
 	global monitor
 
+	drbd.load()
+
 	config.show()
 	plugins.show()
+	drbd.show()
 
 	plugins.loadQuorum(config.quorum_plugin)
 	plugins.loadSwitcher(config.switcher_plugin)

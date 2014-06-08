@@ -320,7 +320,12 @@ class Status():
 
 		log("Transitioning to master")
 
-		time.sleep(5 * random.random()) # fake processing time
+		for resource in drbd.resources:
+			log("Setting DRBD resource '%s' as primary" % (resource.name))
+
+			if not resource.setPrimary():
+				fail("Failed to set DRBD resource role")
+
 		self.SetState("master")
 
 		log("We are now master")
@@ -332,7 +337,13 @@ class Status():
 		log("Transitioning to slave")
 
 		self.SetState("disabling")
-		time.sleep(5 * random.random()) # fake processing time
+
+		for resource in drbd.resources:
+			log("Setting DRBD resource '%s' as secondary" % (resource.name))
+
+			if not resource.setSecondary():
+				fail("Failed to set DRBD resource role")
+
 		self.SetState("slave")
 
 		log("We are now slave")

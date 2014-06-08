@@ -180,8 +180,36 @@ class Monitor(threading.Thread):
 							log("We are supposed to be master, peer is transitioning to master, wait for him to come up")
 
 						elif self.status.peer in [ "master" ]:
-							log("We are supposed to be master, peer is currently master, tell him to transition to slave")
-							self.status.NotifyMasterTransition()
+							drbd_dunknown_resources     = list()
+							drbd_inconsistent_resources = list()
+							drbd_splitbrain_resources   = list()
+
+							for resource in drbd.resources:
+								log("%s: %s/%s" % (resource.name, resource.getLocalDiskStatus(), resource.getPeerDiskStatus()))
+								if resource.getLocalDiskStatus() == "uptodate" and resource.getPeerDiskStatus() == "uptodate":
+									# this resource is ok for failback
+									pass
+								elif resource.getPeerDiskStatus() == "uptodate":
+									drbd_inconsistent_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
+								elif resource.getPeerDiskStatus() == "dunknown":
+									drbd_dunknown_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
+								else:
+									drbd_splitbrain_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
+
+							if len(drbd_dunknown_resources):
+								log("We are supposed to be master, but DRBD resources have not synced their state : %s" % (drbd_dunknown_resources))
+
+							elif len(drbd_splitbrain_resources):
+								log("We are supposed to be master, but DRBD resources have unhandled split brain : %s" % (drbd_splitbrain_resources))
+								self.status.Shutdown()
+								self.stop()
+
+							elif len(drbd_inconsistent_resources):
+								log("We are supposed to be master, but DRBD resources are currently syncing : %s" % (drbd_inconsistent_resources))
+
+							else:
+								log("We are supposed to be master, peer is currently master, tell him to transition to slave")
+								self.status.NotifyMasterTransition()
 
 						else:
 							log("Oops, peer state is wrong")

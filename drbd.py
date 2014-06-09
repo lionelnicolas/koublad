@@ -3,6 +3,7 @@
 
 import config
 import glob
+import os
 import re
 import subprocess
 import sys
@@ -71,6 +72,8 @@ class Resource():
 	# 2: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r-----
 	#    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:f oos:0
 	def readStatus(self):
+		if not os.path.isfile(PROC_DRBD):
+			return False
 		for line in open(PROC_DRBD).readlines():
 			match1 = RE_DRBD_PROC_LINE1.match(line)
 

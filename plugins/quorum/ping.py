@@ -7,6 +7,9 @@ import time
 
 import config
 
+import logger
+log = logger.initlog(__name__)
+
 config_checks = {
 	"interval": { "type": "float", "default": 0.2, "check": ">= 0.2" },
 	"hosts":    { "type": "list",  "default": [],  "check": "checkNonEmptyList(value)" },
@@ -67,6 +70,7 @@ config_dict = config.parseConfigurationFile(config.config_file, config_checks, c
 interval = config_dict['interval']
 hosts    = config_dict['hosts']
 
-print "Plugin '%s' loaded" % (__name__)
+
+log.info("Plugin '%s' loaded" % (__name__))
 config.show(config_dict)
 

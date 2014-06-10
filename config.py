@@ -41,11 +41,6 @@ config_optional = [
 
 config_dict = dict()
 
-def fail(text, code=1):
-	sys.stderr.write("%s\n" % text)
-	sys.stderr.flush()
-	sys.exit(code)
-
 def splitIntoList(value):
 	if   len(value) == 0:       return []
 	elif value.count(',') == 0: return [value]

@@ -34,23 +34,6 @@ STATES = [
 loop     = True
 monitor  = False
 
-def fail(text, code=1):
-	sys.stderr.write("%s\n" % text)
-	sys.stderr.flush()
-	sys.exit(code)
-
-def error(text):
-	sys.stderr.write("%s\n" % text)
-	sys.stderr.flush()
-
-def log(text):
-	global monitor
-
-	monitor.status.Show()
-
-	sys.stdout.write("%s\n" % text)
-	sys.stdout.flush()
-
 class ClientHandler(SocketServer.BaseRequestHandler):
 	def handle(self):
 		self.data, self.sock = self.request

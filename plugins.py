@@ -6,6 +6,9 @@ import os
 import re
 import sys
 
+import logger
+log = logger.initlog(__name__)
+
 RE_PLUGIN_FILE = re.compile("^([^\.]+)\.py$")
 
 found    = dict()
@@ -41,7 +44,7 @@ def load(plugin_type, plugin_name):
 	global found
 
 	if not found:
-		sys.stderr.write("Plugins detection has not been done, please call plugins.search(plugin_dir) first.\n")
+		log.fatal("Plugins detection has not been done, please call plugins.search(plugin_dir) first.\n")
 		return False
 
 	if found.has_key(plugin_type) and found[plugin_type].has_key(plugin_name):
@@ -54,14 +57,14 @@ def loadQuorum(quorum_plugin):
 
 	# load quorum plugin if any
 	if quorum_plugin:
-		quorum = load("quorum", quorum_plugin) or fail("Failed to load quorum plugin '%s'" % (quorum_plugin))
+		quorum = load("quorum", quorum_plugin) or log.fatal("Failed to load quorum plugin '%s'" % (quorum_plugin))
 
 def loadSwitcher(switcher_plugin):
 	global switcher
 
 	# load switcher plugin if any
 	if switcher_plugin:
-		switcher = load("switcher", switcher_plugin) or fail("Failed to load switcher plugin '%s'" % (switcher_plugin))
+		switcher = load("switcher", switcher_plugin) or log.fatal("Failed to load switcher plugin '%s'" % (switcher_plugin))
 
 def show():
 	global found

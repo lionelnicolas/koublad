@@ -20,390 +20,390 @@ import logger
 log = logger.initlog("main")
 
 STATES = [
-	"starting",
-	"waiting",
-	"failback",
-	"failover",
-	"enabling",
-	"master",
-	"disabling",
-	"slave",
-	"unknown",
+    "starting",
+    "waiting",
+    "failback",
+    "failover",
+    "enabling",
+    "master",
+    "disabling",
+    "slave",
+    "unknown",
 ]
 
 loop     = True
 monitor  = False
 
 class ClientHandler(SocketServer.BaseRequestHandler):
-	def handle(self):
-		self.data, self.sock = self.request
+    def handle(self):
+        self.data, self.sock = self.request
 
-		self.server.last_udp_data = self.data
-		self.server.got_remote_ping.set()
+        self.server.last_udp_data = self.data
+        self.server.got_remote_ping.set()
 
 class UdpPingServer(SocketServer.UDPServer):
-	def __init__(self):
-		SocketServer.UDPServer.__init__(self, ("0.0.0.0", config.port), ClientHandler)
+    def __init__(self):
+        SocketServer.UDPServer.__init__(self, ("0.0.0.0", config.port), ClientHandler)
 
-		self.last_udp_data       = "unknown"
-		self.got_remote_ping     = threading.Event()
-		self.allow_reuse_address = True
+        self.last_udp_data       = "unknown"
+        self.got_remote_ping     = threading.Event()
+        self.allow_reuse_address = True
 
-		self.got_remote_ping.clear()
+        self.got_remote_ping.clear()
 
 class Listener(threading.Thread):
-	def __init__(self):
-		threading.Thread.__init__(self)
+    def __init__(self):
+        threading.Thread.__init__(self)
 
-		self.server = UdpPingServer()
+        self.server = UdpPingServer()
 
-	def run(self):
-		log.info("Starting listener")
+    def run(self):
+        log.info("Starting listener")
 
-		self.server.serve_forever()
+        self.server.serve_forever()
 
-		log.info("Listener stopped")
+        log.info("Listener stopped")
 
-	def stop(self):
-		log.info("Stopping listener")
+    def stop(self):
+        log.info("Stopping listener")
 
-		self.server.shutdown()
+        self.server.shutdown()
 
 class Pinger(threading.Thread):
-	def __init__(self):
-		threading.Thread.__init__(self)
+    def __init__(self):
+        threading.Thread.__init__(self)
 
-		self.loop   = True
-		self.sock   = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.wakeup = threading.Event()
+        self.loop   = True
+        self.sock   = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.wakeup = threading.Event()
 
-	def run(self):
-		log.info("Starting pinger")
+    def run(self):
+        log.info("Starting pinger")
 
-		global monitor
+        global monitor
 
-		while self.loop:
-			self.send(monitor.status.state)
-			self.wakeup.wait(config.interval)
-			self.wakeup.clear()
+        while self.loop:
+            self.send(monitor.status.state)
+            self.wakeup.wait(config.interval)
+            self.wakeup.clear()
 
-		log.info("Pinger stopped")
+        log.info("Pinger stopped")
 
-	def stop(self):
-		log.info("Stopping pinger")
+    def stop(self):
+        log.info("Stopping pinger")
 
-		self.loop = False
+        self.loop = False
 
-	def wake(self):
-		self.wakeup.set()
+    def wake(self):
+        self.wakeup.set()
 
-	def send(self, data):
-		try:
-			self.sock.sendto(data, (config.peer_host, config.peer_port))
-		except Exception, e:
-			log.info("Failed to send data (%s)" % (e))
+    def send(self, data):
+        try:
+            self.sock.sendto(data, (config.peer_host, config.peer_port))
+        except Exception, e:
+            log.info("Failed to send data (%s)" % (e))
 
 class Monitor(threading.Thread):
-	def __init__(self, listener, pinger):
-		threading.Thread.__init__(self)
+    def __init__(self, listener, pinger):
+        threading.Thread.__init__(self)
 
-		self.listener = listener
-		self.pinger   = pinger
-		self.loop     = True
-		self.status   = Status(self)
+        self.listener = listener
+        self.pinger   = pinger
+        self.loop     = True
+        self.status   = Status(self)
 
-		self.quorum_ok = 0
+        self.quorum_ok = 0
 
-	def run(self):
-		log.info("Starting monitor")
+    def run(self):
+        log.info("Starting monitor")
 
-		self.listener.start()
-		self.pinger.start()
+        self.listener.start()
+        self.pinger.start()
 
-		self.status.SetDead()
-		# TODO: get current "real" state (DRBD, services ???)
+        self.status.SetDead()
+        # TODO: get current "real" state (DRBD, services ???)
 
-		while self.loop:
-			if self.listener.server.got_remote_ping.wait(config.timeout):
-				self.listener.server.got_remote_ping.clear()
+        while self.loop:
+            if self.listener.server.got_remote_ping.wait(config.timeout):
+                self.listener.server.got_remote_ping.clear()
 
-				if not self.loop:
-					continue
+                if not self.loop:
+                    continue
 
-				self.status.SetPeerState(self.listener.server.last_udp_data)
+                self.status.SetPeerState(self.listener.server.last_udp_data)
 
-				if self.status.state == "master":
-					if config.role == "master":
-						if self.status.pstate != "master":
-							self.status.SetState("master")
+                if self.status.state == "master":
+                    if config.role == "master":
+                        if self.status.pstate != "master":
+                            self.status.SetState("master")
 
-					else:
-						if   self.status.peer in [ "starting", "waiting", "disabling", "slave", "unknown" ]:
-							log.info("We are currently master, the legitimate master is slave or not ready")
+                    else:
+                        if   self.status.peer in [ "starting", "waiting", "disabling", "slave", "unknown" ]:
+                            log.info("We are currently master, the legitimate master is slave or not ready")
 
-						elif self.status.peer in [ "master" ]:
-							log.info("Oops, we have a split brain")
-							log.info("Disabling everything")
-							self.status.Disable()
+                        elif self.status.peer in [ "master" ]:
+                            log.info("Oops, we have a split brain")
+                            log.info("Disabling everything")
+                            self.status.Disable()
 
-						elif self.status.peer in [ "enabling", "failback", "failover" ]:
-							log.info("Peer is transitioning to master")
-							self.status.Disable()
+                        elif self.status.peer in [ "enabling", "failback", "failover" ]:
+                            log.info("Peer is transitioning to master")
+                            self.status.Disable()
 
-						else:
-							log.info("Oops, peer state is wrong")
+                        else:
+                            log.info("Oops, peer state is wrong")
 
-				elif self.status.state in [ "slave", "enabling", "failback", "failover" ]:
-					if config.role == "master":
-						if   self.status.peer in [ "starting", "waiting", "slave", "unknown" ]:
-							log.info("We are supposed to be master, peer is slave or not ready")
-							self.status.Enable()
+                elif self.status.state in [ "slave", "enabling", "failback", "failover" ]:
+                    if config.role == "master":
+                        if   self.status.peer in [ "starting", "waiting", "slave", "unknown" ]:
+                            log.info("We are supposed to be master, peer is slave or not ready")
+                            self.status.Enable()
 
-						elif self.status.peer in [ "disabling" ]:
-							log.info("We are supposed to be master, peer is transitioning to slave, wait for him to shutdown")
+                        elif self.status.peer in [ "disabling" ]:
+                            log.info("We are supposed to be master, peer is transitioning to slave, wait for him to shutdown")
 
-						elif self.status.peer in [ "enabling" ]:
-							log.info("We are supposed to be master, peer is transitioning to master, wait for him to come up")
+                        elif self.status.peer in [ "enabling" ]:
+                            log.info("We are supposed to be master, peer is transitioning to master, wait for him to come up")
 
-						elif self.status.peer in [ "master" ]:
-							drbd_dunknown_resources     = list()
-							drbd_inconsistent_resources = list()
-							drbd_splitbrain_resources   = list()
+                        elif self.status.peer in [ "master" ]:
+                            drbd_dunknown_resources     = list()
+                            drbd_inconsistent_resources = list()
+                            drbd_splitbrain_resources   = list()
 
-							for resource in drbd.resources:
-								log.info("%s: %s/%s" % (resource.name, resource.getLocalDiskStatus(), resource.getPeerDiskStatus()))
-								if resource.getLocalDiskStatus() == "uptodate" and resource.getPeerDiskStatus() == "uptodate":
-									# this resource is ok for failback
-									pass
-								elif resource.getPeerDiskStatus() == "uptodate":
-									drbd_inconsistent_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
-								elif resource.getPeerDiskStatus() == "dunknown":
-									drbd_dunknown_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
-								else:
-									drbd_splitbrain_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
+                            for resource in drbd.resources:
+                                log.info("%s: %s/%s" % (resource.name, resource.getLocalDiskStatus(), resource.getPeerDiskStatus()))
+                                if resource.getLocalDiskStatus() == "uptodate" and resource.getPeerDiskStatus() == "uptodate":
+                                    # this resource is ok for failback
+                                    pass
+                                elif resource.getPeerDiskStatus() == "uptodate":
+                                    drbd_inconsistent_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
+                                elif resource.getPeerDiskStatus() == "dunknown":
+                                    drbd_dunknown_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
+                                else:
+                                    drbd_splitbrain_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
 
-							if len(drbd_dunknown_resources):
-								log.info("We are supposed to be master, but DRBD resources have not synced their state : %s" % (drbd_dunknown_resources))
+                            if len(drbd_dunknown_resources):
+                                log.info("We are supposed to be master, but DRBD resources have not synced their state : %s" % (drbd_dunknown_resources))
 
-							elif len(drbd_splitbrain_resources):
-								log.info("We are supposed to be master, but DRBD resources have unhandled split brain : %s" % (drbd_splitbrain_resources))
-								self.status.Shutdown()
-								self.stop()
+                            elif len(drbd_splitbrain_resources):
+                                log.info("We are supposed to be master, but DRBD resources have unhandled split brain : %s" % (drbd_splitbrain_resources))
+                                self.status.Shutdown()
+                                self.stop()
 
-							elif len(drbd_inconsistent_resources):
-								log.info("We are supposed to be master, but DRBD resources are currently syncing : %s" % (drbd_inconsistent_resources))
+                            elif len(drbd_inconsistent_resources):
+                                log.info("We are supposed to be master, but DRBD resources are currently syncing : %s" % (drbd_inconsistent_resources))
 
-							else:
-								log.info("We are supposed to be master, peer is currently master, tell him to transition to slave")
-								self.status.NotifyMasterTransition()
+                            else:
+                                log.info("We are supposed to be master, peer is currently master, tell him to transition to slave")
+                                self.status.NotifyMasterTransition()
 
-						else:
-							log.info("Oops, peer state is wrong")
+                        else:
+                            log.info("Oops, peer state is wrong")
 
-					else:
-						if self.status.pstate != "slave":
-							self.status.SetState("slave")
+                    else:
+                        if self.status.pstate != "slave":
+                            self.status.SetState("slave")
 
-				elif self.status.state in [ "starting", "waiting", "disabling", "unknown" ]:
-					log.info("We are transitioning, wait for us to finish")
+                elif self.status.state in [ "starting", "waiting", "disabling", "unknown" ]:
+                    log.info("We are transitioning, wait for us to finish")
 
-				elif self.status.state in [ "shutdown" ]:
-					log.info("We are shutting down ...")
+                elif self.status.state in [ "shutdown" ]:
+                    log.info("We are shutting down ...")
 
-				else:
-					log.info("Oops, our state is wrong")
+                else:
+                    log.info("Oops, our state is wrong")
 
-			else:
-				if not self.loop:
-					continue
+            else:
+                if not self.loop:
+                    continue
 
-				self.status.SetPeerState("unknown")
+                self.status.SetPeerState("unknown")
 
-				if   self.status.state == "master":
-					if self.status.pstate != "master":
-						self.status.SetState("master")
+                if   self.status.state == "master":
+                    if self.status.pstate != "master":
+                        self.status.SetState("master")
 
-					if plugins.quorum:
-						if plugins.quorum.get():
-							log.info("We have enough quorum to remain master")
-						else:
-							log.info("We have not enough quorum to remain master")
-							self.status.Disable()
+                    if plugins.quorum:
+                        if plugins.quorum.get():
+                            log.info("We have enough quorum to remain master")
+                        else:
+                            log.info("We have not enough quorum to remain master")
+                            self.status.Disable()
 
-				elif self.status.state == "slave":
-					if plugins.quorum:
-						if plugins.quorum.get():
-							if self.quorum_ok < 3:
-								log.info("We have enough quorum to failover to us, but wait for few attempts")
-								self.quorum_ok += 1
+                elif self.status.state == "slave":
+                    if plugins.quorum:
+                        if plugins.quorum.get():
+                            if self.quorum_ok < 3:
+                                log.info("We have enough quorum to failover to us, but wait for few attempts")
+                                self.quorum_ok += 1
 
-							else:
-								log.info("We have enough quorum to failover to us")
-								self.status.NotifyMasterTransition()
-								self.quorum_ok = 0
-						else:
-							log.info("We have not enough quorum to require failover to us")
+                            else:
+                                log.info("We have enough quorum to failover to us")
+                                self.status.NotifyMasterTransition()
+                                self.quorum_ok = 0
+                        else:
+                            log.info("We have not enough quorum to require failover to us")
 
-					elif not plugins.quorum:
-						log.info("No quorum plugin defined, require failover to us")
-						self.status.NotifyMasterTransition()
+                    elif not plugins.quorum:
+                        log.info("No quorum plugin defined, require failover to us")
+                        self.status.NotifyMasterTransition()
 
-				elif self.status.state in [ "failback", "failover" ]:
-					self.status.Enable()
+                elif self.status.state in [ "failback", "failover" ]:
+                    self.status.Enable()
 
-				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
-					log.info("We are transitioning, wait for us to finish")
+                elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
+                    log.info("We are transitioning, wait for us to finish")
 
-				elif self.status.state in [ "shutdown" ]:
-					log.info("We are shutting down ...")
+                elif self.status.state in [ "shutdown" ]:
+                    log.info("We are shutting down ...")
 
-				else:
-					log.info("Oops, our state is wrong")
+                else:
+                    log.info("Oops, our state is wrong")
 
-		self.listener.stop()
-		self.pinger.stop()
+        self.listener.stop()
+        self.pinger.stop()
 
-		log.info("Monitor stopped")
+        log.info("Monitor stopped")
 
-	def stop(self):
-		log.info("Stopping monitor")
+    def stop(self):
+        log.info("Stopping monitor")
 
-		self.loop = False
+        self.loop = False
 
 class Status():
-	def __init__(self, monitor):
-		self.monitor = monitor
-		self.pstate  = "unknown"
-		self.state   = "starting"
-		self.peer    = False
+    def __init__(self, monitor):
+        self.monitor = monitor
+        self.pstate  = "unknown"
+        self.state   = "starting"
+        self.peer    = False
 
-	def Show(self):
-		sys.stdout.write("%5.1f state:%-9s peer:%-9s -- " % (time.time() % 100, self.state, self.peer))
+    def Show(self):
+        sys.stdout.write("%5.1f state:%-9s peer:%-9s -- " % (time.time() % 100, self.state, self.peer))
 
-	def SetState(self, newstate, immediate=False):
-		self.pstate = self.state
-		self.state  = newstate
+    def SetState(self, newstate, immediate=False):
+        self.pstate = self.state
+        self.state  = newstate
 
-		self.monitor.pinger.wake()
+        self.monitor.pinger.wake()
 
-		# Instantly send the new state to peer, without waiting for pinger mainloop
-		if immediate:
-			self.monitor.pinger.send(newstate)
+        # Instantly send the new state to peer, without waiting for pinger mainloop
+        if immediate:
+            self.monitor.pinger.send(newstate)
 
-	def SetPeerState(self, newstate):
-		oldstate  = self.peer
-		self.peer = newstate
+    def SetPeerState(self, newstate):
+        oldstate  = self.peer
+        self.peer = newstate
 
-		if oldstate and newstate != oldstate:
-			if   newstate == "unknown":
-				log.info("Peer is down")
+        if oldstate and newstate != oldstate:
+            if   newstate == "unknown":
+                log.info("Peer is down")
 
-			elif newstate == "shutdown":
-				log.info("Peer is shutting down")
+            elif newstate == "shutdown":
+                log.info("Peer is shutting down")
 
-			else:
-				log.info("Peer state is now '%s'" % (newstate))
+            else:
+                log.info("Peer state is now '%s'" % (newstate))
 
 
-	def SetDead(self):
-		log.info("Waiting for a while before handling events")
+    def SetDead(self):
+        log.info("Waiting for a while before handling events")
 
-		self.SetState("waiting")
-		time.sleep(config.initdead)
-		self.SetState("slave")
+        self.SetState("waiting")
+        time.sleep(config.initdead)
+        self.SetState("slave")
 
-		log.info("We are now slave")
+        log.info("We are now slave")
 
-	def NotifyMasterTransition(self):
-		log.info("Notifying that we are transitioning to master")
+    def NotifyMasterTransition(self):
+        log.info("Notifying that we are transitioning to master")
 
-		if config.role == "master":
-			self.SetState("failback", immediate=True)
-			time.sleep(0.5)
+        if config.role == "master":
+            self.SetState("failback", immediate=True)
+            time.sleep(0.5)
 
-		elif config.role == "slave":
-			self.SetState("failover", immediate=True)
-			time.sleep(0.5)
+        elif config.role == "slave":
+            self.SetState("failover", immediate=True)
+            time.sleep(0.5)
 
-	def Enable(self):
-		if self.state == "shutdown":
-			return
+    def Enable(self):
+        if self.state == "shutdown":
+            return
 
-		if self.state != "enabling":
-			self.SetState("enabling")
+        if self.state != "enabling":
+            self.SetState("enabling")
 
-		log.info("Transitioning to master")
+        log.info("Transitioning to master")
 
-		for resource in drbd.resources:
-			log.info("Setting DRBD resource '%s' as primary" % (resource.name))
+        for resource in drbd.resources:
+            log.info("Setting DRBD resource '%s' as primary" % (resource.name))
 
-			if not resource.setPrimary():
-				log.fatal("Failed to set DRBD resource role")
+            if not resource.setPrimary():
+                log.fatal("Failed to set DRBD resource role")
 
-		self.SetState("master")
+        self.SetState("master")
 
-		log.info("We are now master")
+        log.info("We are now master")
 
-	def Disable(self):
-		if self.state == "slave":
-			return
+    def Disable(self):
+        if self.state == "slave":
+            return
 
-		log.info("Transitioning to slave")
+        log.info("Transitioning to slave")
 
-		self.SetState("disabling")
+        self.SetState("disabling")
 
-		for resource in drbd.resources:
-			log.info("Setting DRBD resource '%s' as secondary" % (resource.name))
+        for resource in drbd.resources:
+            log.info("Setting DRBD resource '%s' as secondary" % (resource.name))
 
-			if not resource.setSecondary():
-				log.fatal("Failed to set DRBD resource role")
+            if not resource.setSecondary():
+                log.fatal("Failed to set DRBD resource role")
 
-		self.SetState("slave")
+        self.SetState("slave")
 
-		log.info("We are now slave")
+        log.info("We are now slave")
 
-	def Shutdown(self):
-		log.info("Initiating shutdown ...")
+    def Shutdown(self):
+        log.info("Initiating shutdown ...")
 
-		self.monitor.pinger.send("shutdown")
-		self.Disable()
+        self.monitor.pinger.send("shutdown")
+        self.Disable()
 
 def signal_handler(signum, frame):
-	global loop
-	global monitor
+    global loop
+    global monitor
 
-	loop = False
+    loop = False
 
-	if signum in [ signal.SIGINT, signal.SIGTERM ]:
-		monitor.status.Shutdown()
-		monitor.stop()
+    if signum in [ signal.SIGINT, signal.SIGTERM ]:
+        monitor.status.Shutdown()
+        monitor.stop()
 
 def main():
-	global loop
-	global monitor
+    global loop
+    global monitor
 
-	drbd.load()
+    drbd.load()
 
-	config.show()
-	plugins.show()
-	drbd.show()
+    config.show()
+    plugins.show()
+    drbd.show()
 
-	plugins.loadQuorum(config.quorum_plugin)
-	plugins.loadSwitcher(config.switcher_plugin)
-	print
+    plugins.loadQuorum(config.quorum_plugin)
+    plugins.loadSwitcher(config.switcher_plugin)
+    print
 
-	signal.signal(signal.SIGINT,  signal_handler)
-	signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT,  signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
-	listener = Listener()
-	pinger   = Pinger()
-	monitor  = Monitor(listener, pinger)
+    listener = Listener()
+    pinger   = Pinger()
+    monitor  = Monitor(listener, pinger)
 
-	monitor.start()
+    monitor.start()
 
-	while loop:
-		time.sleep(.1)
+    while loop:
+        time.sleep(.1)
 
 if __name__ == '__main__':
-	main()
+    main()
 

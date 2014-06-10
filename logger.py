@@ -7,17 +7,17 @@ import os
 import sys
 
 def critical_with_shutdown(self, msg, *args, **kwargs):
-	if logging.CRITICAL >= self.getEffectiveLevel():
-		apply(self._log, (logging.CRITICAL, msg, args), kwargs)
+    if logging.CRITICAL >= self.getEffectiveLevel():
+        apply(self._log, (logging.CRITICAL, msg, args), kwargs)
 
-	# we've got a critical error, shutdown ...
-	os.kill(os.getpid(), signal.SIGTERM)
+    # we've got a critical error, shutdown ...
+    os.kill(os.getpid(), signal.SIGTERM)
 
 logging.Logger.critical = critical_with_shutdown
 logging.Logger.fatal    = logging.Logger.critical
 
 def initlog(name):
-	return logging.getLogger(name)
+    return logging.getLogger(name)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

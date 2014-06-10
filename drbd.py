@@ -9,6 +9,9 @@ import subprocess
 import sys
 import time
 
+import logger
+log = logger.initlog(__name__)
+
 RE_DRBD_RESOURCE   = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
 RE_DRBD_DEVICE     = re.compile("^[\ \t]*device[\ \t]+([a-z0-9/]+).*$")
 RE_DRBD_ROLE       = re.compile("^([^/]+)/([^\n]+)$")
@@ -73,7 +76,9 @@ class Resource():
 	#    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:f oos:0
 	def readStatus(self):
 		if not os.path.isfile(PROC_DRBD):
+			log.fatal("failed to open %s", PROC_DRBD)
 			return False
+
 		for line in open(PROC_DRBD).readlines():
 			match1 = RE_DRBD_PROC_LINE1.match(line)
 

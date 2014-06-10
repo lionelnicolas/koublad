@@ -16,6 +16,9 @@ import drbd
 import config
 import plugins
 
+import logger
+log = logger.initlog("main")
+
 STATES = [
 	"starting",
 	"waiting",
@@ -72,14 +75,14 @@ class Listener(threading.Thread):
 		self.server = UdpPingServer()
 
 	def run(self):
-		log("Starting listener")
+		log.info("Starting listener")
 
 		self.server.serve_forever()
 
-		log("Listener stopped")
+		log.info("Listener stopped")
 
 	def stop(self):
-		log("Stopping listener")
+		log.info("Stopping listener")
 
 		self.server.shutdown()
 
@@ -92,7 +95,7 @@ class Pinger(threading.Thread):
 		self.wakeup = threading.Event()
 
 	def run(self):
-		log("Starting pinger")
+		log.info("Starting pinger")
 
 		global monitor
 
@@ -101,10 +104,10 @@ class Pinger(threading.Thread):
 			self.wakeup.wait(config.interval)
 			self.wakeup.clear()
 
-		log("Pinger stopped")
+		log.info("Pinger stopped")
 
 	def stop(self):
-		log("Stopping pinger")
+		log.info("Stopping pinger")
 
 		self.loop = False
 
@@ -115,7 +118,7 @@ class Pinger(threading.Thread):
 		try:
 			self.sock.sendto(data, (config.peer_host, config.peer_port))
 		except Exception, e:
-			log("Failed to send data (%s)" % (e))
+			log.info("Failed to send data (%s)" % (e))
 
 class Monitor(threading.Thread):
 	def __init__(self, listener, pinger):
@@ -129,7 +132,7 @@ class Monitor(threading.Thread):
 		self.quorum_ok = 0
 
 	def run(self):
-		log("Starting monitor")
+		log.info("Starting monitor")
 
 		self.listener.start()
 		self.pinger.start()
@@ -153,31 +156,31 @@ class Monitor(threading.Thread):
 
 					else:
 						if   self.status.peer in [ "starting", "waiting", "disabling", "slave", "unknown" ]:
-							log("We are currently master, the legitimate master is slave or not ready")
+							log.info("We are currently master, the legitimate master is slave or not ready")
 
 						elif self.status.peer in [ "master" ]:
-							log("Oops, we have a split brain")
-							log("Disabling everything")
+							log.info("Oops, we have a split brain")
+							log.info("Disabling everything")
 							self.status.Disable()
 
 						elif self.status.peer in [ "enabling", "failback", "failover" ]:
-							log("Peer is transitioning to master")
+							log.info("Peer is transitioning to master")
 							self.status.Disable()
 
 						else:
-							log("Oops, peer state is wrong")
+							log.info("Oops, peer state is wrong")
 
 				elif self.status.state in [ "slave", "enabling", "failback", "failover" ]:
 					if config.role == "master":
 						if   self.status.peer in [ "starting", "waiting", "slave", "unknown" ]:
-							log("We are supposed to be master, peer is slave or not ready")
+							log.info("We are supposed to be master, peer is slave or not ready")
 							self.status.Enable()
 
 						elif self.status.peer in [ "disabling" ]:
-							log("We are supposed to be master, peer is transitioning to slave, wait for him to shutdown")
+							log.info("We are supposed to be master, peer is transitioning to slave, wait for him to shutdown")
 
 						elif self.status.peer in [ "enabling" ]:
-							log("We are supposed to be master, peer is transitioning to master, wait for him to come up")
+							log.info("We are supposed to be master, peer is transitioning to master, wait for him to come up")
 
 						elif self.status.peer in [ "master" ]:
 							drbd_dunknown_resources     = list()
@@ -185,7 +188,7 @@ class Monitor(threading.Thread):
 							drbd_splitbrain_resources   = list()
 
 							for resource in drbd.resources:
-								log("%s: %s/%s" % (resource.name, resource.getLocalDiskStatus(), resource.getPeerDiskStatus()))
+								log.info("%s: %s/%s" % (resource.name, resource.getLocalDiskStatus(), resource.getPeerDiskStatus()))
 								if resource.getLocalDiskStatus() == "uptodate" and resource.getPeerDiskStatus() == "uptodate":
 									# this resource is ok for failback
 									pass
@@ -197,35 +200,35 @@ class Monitor(threading.Thread):
 									drbd_splitbrain_resources.append("%s=%s" % (resource.name, resource.getConnectionStatus()))
 
 							if len(drbd_dunknown_resources):
-								log("We are supposed to be master, but DRBD resources have not synced their state : %s" % (drbd_dunknown_resources))
+								log.info("We are supposed to be master, but DRBD resources have not synced their state : %s" % (drbd_dunknown_resources))
 
 							elif len(drbd_splitbrain_resources):
-								log("We are supposed to be master, but DRBD resources have unhandled split brain : %s" % (drbd_splitbrain_resources))
+								log.info("We are supposed to be master, but DRBD resources have unhandled split brain : %s" % (drbd_splitbrain_resources))
 								self.status.Shutdown()
 								self.stop()
 
 							elif len(drbd_inconsistent_resources):
-								log("We are supposed to be master, but DRBD resources are currently syncing : %s" % (drbd_inconsistent_resources))
+								log.info("We are supposed to be master, but DRBD resources are currently syncing : %s" % (drbd_inconsistent_resources))
 
 							else:
-								log("We are supposed to be master, peer is currently master, tell him to transition to slave")
+								log.info("We are supposed to be master, peer is currently master, tell him to transition to slave")
 								self.status.NotifyMasterTransition()
 
 						else:
-							log("Oops, peer state is wrong")
+							log.info("Oops, peer state is wrong")
 
 					else:
 						if self.status.pstate != "slave":
 							self.status.SetState("slave")
 
 				elif self.status.state in [ "starting", "waiting", "disabling", "unknown" ]:
-					log("We are transitioning, wait for us to finish")
+					log.info("We are transitioning, wait for us to finish")
 
 				elif self.status.state in [ "shutdown" ]:
-					log("We are shutting down ...")
+					log.info("We are shutting down ...")
 
 				else:
-					log("Oops, our state is wrong")
+					log.info("Oops, our state is wrong")
 
 			else:
 				if not self.loop:
@@ -239,48 +242,48 @@ class Monitor(threading.Thread):
 
 					if plugins.quorum:
 						if plugins.quorum.get():
-							log("We have enough quorum to remain master")
+							log.info("We have enough quorum to remain master")
 						else:
-							log("We have not enough quorum to remain master")
+							log.info("We have not enough quorum to remain master")
 							self.status.Disable()
 
 				elif self.status.state == "slave":
 					if plugins.quorum:
 						if plugins.quorum.get():
 							if self.quorum_ok < 3:
-								log("We have enough quorum to failover to us, but wait for few attempts")
+								log.info("We have enough quorum to failover to us, but wait for few attempts")
 								self.quorum_ok += 1
 
 							else:
-								log("We have enough quorum to failover to us")
+								log.info("We have enough quorum to failover to us")
 								self.status.NotifyMasterTransition()
 								self.quorum_ok = 0
 						else:
-							log("We have not enough quorum to require failover to us")
+							log.info("We have not enough quorum to require failover to us")
 
 					elif not plugins.quorum:
-						log("No quorum plugin defined, require failover to us")
+						log.info("No quorum plugin defined, require failover to us")
 						self.status.NotifyMasterTransition()
 
 				elif self.status.state in [ "failback", "failover" ]:
 					self.status.Enable()
 
 				elif self.status.state in [ "starting", "waiting", "disabling", "enabling", "unknown" ]:
-					log("We are transitioning, wait for us to finish")
+					log.info("We are transitioning, wait for us to finish")
 
 				elif self.status.state in [ "shutdown" ]:
-					log("We are shutting down ...")
+					log.info("We are shutting down ...")
 
 				else:
-					log("Oops, our state is wrong")
+					log.info("Oops, our state is wrong")
 
 		self.listener.stop()
 		self.pinger.stop()
 
-		log("Monitor stopped")
+		log.info("Monitor stopped")
 
 	def stop(self):
-		log("Stopping monitor")
+		log.info("Stopping monitor")
 
 		self.loop = False
 
@@ -310,26 +313,26 @@ class Status():
 
 		if oldstate and newstate != oldstate:
 			if   newstate == "unknown":
-				log("Peer is down")
+				log.info("Peer is down")
 
 			elif newstate == "shutdown":
-				log("Peer is shutting down")
+				log.info("Peer is shutting down")
 
 			else:
-				log("Peer state is now '%s'" % (newstate))
+				log.info("Peer state is now '%s'" % (newstate))
 
 
 	def SetDead(self):
-		log("Waiting for a while before handling events")
+		log.info("Waiting for a while before handling events")
 
 		self.SetState("waiting")
 		time.sleep(config.initdead)
 		self.SetState("slave")
 
-		log("We are now slave")
+		log.info("We are now slave")
 
 	def NotifyMasterTransition(self):
-		log("Notifying that we are transitioning to master")
+		log.info("Notifying that we are transitioning to master")
 
 		if config.role == "master":
 			self.SetState("failback", immediate=True)
@@ -346,38 +349,38 @@ class Status():
 		if self.state != "enabling":
 			self.SetState("enabling")
 
-		log("Transitioning to master")
+		log.info("Transitioning to master")
 
 		for resource in drbd.resources:
-			log("Setting DRBD resource '%s' as primary" % (resource.name))
+			log.info("Setting DRBD resource '%s' as primary" % (resource.name))
 
 			if not resource.setPrimary():
-				fail("Failed to set DRBD resource role")
+				log.fatal("Failed to set DRBD resource role")
 
 		self.SetState("master")
 
-		log("We are now master")
+		log.info("We are now master")
 
 	def Disable(self):
 		if self.state == "slave":
 			return
 
-		log("Transitioning to slave")
+		log.info("Transitioning to slave")
 
 		self.SetState("disabling")
 
 		for resource in drbd.resources:
-			log("Setting DRBD resource '%s' as secondary" % (resource.name))
+			log.info("Setting DRBD resource '%s' as secondary" % (resource.name))
 
 			if not resource.setSecondary():
-				fail("Failed to set DRBD resource role")
+				log.fatal("Failed to set DRBD resource role")
 
 		self.SetState("slave")
 
-		log("We are now slave")
+		log.info("We are now slave")
 
 	def Shutdown(self):
-		log("Initiating shutdown ...")
+		log.info("Initiating shutdown ...")
 
 		self.monitor.pinger.send("shutdown")
 		self.Disable()

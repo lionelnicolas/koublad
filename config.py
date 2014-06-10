@@ -8,6 +8,9 @@ import sys
 
 import plugins
 
+import logger
+log = logger.initlog(__name__)
+
 CONFIG_FILE = "/etc/failover.conf"
 DRBD_DIR    = "/etc/drbd.d"
 PLUGIN_DIR  = "plugins/"
@@ -60,7 +63,7 @@ def convertType(name, value, vartype):
 		else:                    ret = str(value)
 
 	except ValueError:
-		fail("Parameter '%s' should be a %s" % (name, vartype))
+		log.fatal("Parameter '%s' should be a %s" % (name, vartype))
 
 	return ret
 
@@ -91,14 +94,14 @@ def checkDrbdResources(resources):
 					resources_dup.remove(resource)
 
 	if len(resources_dup):
-		fail("The following DRBD resources do not exist: %s" % (resources_dup))
+		log.fatal("The following DRBD resources do not exist: %s" % (resources_dup))
 
 	return True
 
 def checkServices(services):
 	for service in services:
 		if not os.path.isfile(os.path.join("/etc/init.d", service)):
-			fail("Service '%s' does not exist" % (service))
+			log.fatal("Service '%s' does not exist" % (service))
 
 	return True
 
@@ -108,7 +111,7 @@ def checkQuorumPlugin(filepath):
 	if not filepath:
 		return True
 
-	return os.path.isfile(os.path.join(config_dict['plugin_dir'], "quorum", "%s.py" % filepath)) or fail("Quorum plugin '%s' does not exist." % (filepath))
+	return os.path.isfile(os.path.join(config_dict['plugin_dir'], "quorum", "%s.py" % filepath)) or log.fatal("Quorum plugin '%s' does not exist." % (filepath))
 
 def checkSwitcherPlugin(filepath):
 	global config_dict
@@ -116,13 +119,13 @@ def checkSwitcherPlugin(filepath):
 	if not filepath:
 		return True
 
-	return os.path.isfile(os.path.join(config_dict['plugin_dir'], "switcher", "%s.py" % filepath)) or fail("Switcher plugin '%s' does not exist." % (filepath))
+	return os.path.isfile(os.path.join(config_dict['plugin_dir'], "switcher", "%s.py" % filepath)) or log.fatal("Switcher plugin '%s' does not exist." % (filepath))
 
 def checkFile(filepath):
-	return os.path.isfile(filepath) or fail("File '%s' does not exist." % (filepath))
+	return os.path.isfile(filepath) or log.fatal("File '%s' does not exist." % (filepath))
 
 def checkDirectory(dirpath):
-	return os.path.isdir(dirpath) or fail("Directory '%s' does not exist." % (dirpath))
+	return os.path.isdir(dirpath) or log.fatal("Directory '%s' does not exist." % (dirpath))
 
 def defaultVariables(config_checks):
 	config_dict = dict()
@@ -154,13 +157,13 @@ def parseConfigurationFile(config_file, config_checks, config_optional, config_d
 				res               = checkValue(name, config_dict[name], check)
 
 				if not res:
-					fail("Parameter '%s' validation failed (%s)" % (name, check))
+					log.fatal("Parameter '%s' validation failed (%s)" % (name, check))
 
 
 	# check mandatory variables
 	for name in config_checks.keys():
 		if name not in config_optional and config_dict[name] == False:
-			fail("Parameter '%s' cannot be empty or unset" % (name))
+			log.fatal("Parameter '%s' cannot be empty or unset" % (name))
 
 	return config_dict
 

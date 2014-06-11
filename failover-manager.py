@@ -203,9 +203,6 @@ class Status():
         self.state   = "starting"
         self.peer    = False
 
-    def Show(self):
-        sys.stdout.write("%5.1f state:%-9s peer:%-9s -- " % (time.time() % 100, self.state, self.peer))
-
     def SetState(self, newstate, immediate=False):
         self.pstate = self.state
         self.state  = newstate

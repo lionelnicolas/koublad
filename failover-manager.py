@@ -7,7 +7,6 @@ import random
 import re
 import signal
 import socket
-import SocketServer
 import sys
 import threading
 import time
@@ -15,6 +14,7 @@ import time
 import drbd
 import config
 import plugins
+import mod_listener
 
 import logger
 log = logger.initlog("main")
@@ -33,41 +33,6 @@ STATES = [
 
 loop     = True
 monitor  = False
-
-class ClientHandler(SocketServer.BaseRequestHandler):
-    def handle(self):
-        self.data, self.sock = self.request
-
-        self.server.last_udp_data = self.data
-        self.server.got_remote_ping.set()
-
-class UdpPingServer(SocketServer.UDPServer):
-    def __init__(self):
-        SocketServer.UDPServer.__init__(self, ("0.0.0.0", config.port), ClientHandler)
-
-        self.last_udp_data       = "unknown"
-        self.got_remote_ping     = threading.Event()
-        self.allow_reuse_address = True
-
-        self.got_remote_ping.clear()
-
-class Listener(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-
-        self.server = UdpPingServer()
-
-    def run(self):
-        log.info("Starting listener")
-
-        self.server.serve_forever()
-
-        log.info("Listener stopped")
-
-    def stop(self):
-        log.info("Stopping listener")
-
-        self.server.shutdown()
 
 class Pinger(threading.Thread):
     def __init__(self):
@@ -395,10 +360,11 @@ def main():
     signal.signal(signal.SIGINT,  signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    listener = Listener()
+    listener = mod_listener.Listener()
     pinger   = Pinger()
     monitor  = Monitor(listener, pinger)
 
+    listener.setMonitor(monitor)
     monitor.start()
 
     while loop:

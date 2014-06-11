@@ -29,7 +29,7 @@ def ping(host, count, interval, timeout):
     
     if res == None:
         pipe.kill()
-        sys.stdout.write("Killed ping to %s" % (host))
+        log.warn("Killed ping to %s" % (host))
         res = 1
 
     return res

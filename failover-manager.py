@@ -11,9 +11,9 @@ import sys
 import threading
 import time
 
-import drbd
 import config
 import plugins
+import mod_drbd
 import mod_listener
 import mod_pinger
 
@@ -102,7 +102,7 @@ class Monitor(threading.Thread):
                             drbd_inconsistent_resources = list()
                             drbd_splitbrain_resources   = list()
 
-                            for resource in drbd.resources:
+                            for resource in mod_drbd.resources:
                                 log.info("%s: %s/%s" % (resource.name, resource.getLocalDiskStatus(), resource.getPeerDiskStatus()))
                                 if resource.getLocalDiskStatus() == "uptodate" and resource.getPeerDiskStatus() == "uptodate":
                                     # this resource is ok for failback
@@ -266,7 +266,7 @@ class Status():
 
         log.info("Transitioning to master")
 
-        for resource in drbd.resources:
+        for resource in mod_drbd.resources:
             log.info("Setting DRBD resource '%s' as primary" % (resource.name))
 
             if not resource.setPrimary():
@@ -284,7 +284,7 @@ class Status():
 
         self.SetState("disabling")
 
-        for resource in drbd.resources:
+        for resource in mod_drbd.resources:
             log.info("Setting DRBD resource '%s' as secondary" % (resource.name))
 
             if not resource.setSecondary():
@@ -314,11 +314,11 @@ def main():
     global loop
     global monitor
 
-    drbd.load()
+    mod_drbd.load()
 
     config.show()
     plugins.show()
-    drbd.show()
+    mod_drbd.show()
 
     plugins.loadQuorum(config.quorum_plugin)
     plugins.loadSwitcher(config.switcher_plugin)

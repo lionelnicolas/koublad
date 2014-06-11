@@ -9,8 +9,8 @@ import subprocess
 import sys
 import time
 
-import logger
-log = logger.initlog(__name__)
+import mod_logger
+log = mod_logger.initlog(__name__)
 
 RE_DRBD_RESOURCE   = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
 RE_DRBD_DEVICE     = re.compile("^[\ \t]*device[\ \t]+([a-z0-9/]+).*$")

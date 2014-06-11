@@ -8,8 +8,8 @@ import sys
 
 import mod_plugins
 
-import logger
-log = logger.initlog(__name__)
+import mod_logger
+log = mod_logger.initlog(__name__)
 
 CONFIG_FILE = "/etc/failover.conf"
 DRBD_DIR    = "/etc/drbd.d"

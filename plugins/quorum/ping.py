@@ -7,8 +7,8 @@ import time
 
 import config
 
-import logger
-log = logger.initlog(__name__)
+import mod_logger
+log = mod_logger.initlog(__name__)
 
 config_checks = {
     "interval": { "type": "float", "default": 0.2, "check": ">= 0.2" },

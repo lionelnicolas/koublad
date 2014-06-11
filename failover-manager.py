@@ -17,8 +17,8 @@ import mod_listener
 import mod_pinger
 import mod_plugins
 
-import logger
-log = logger.initlog("main")
+import mod_logger
+log = mod_logger.initlog("main")
 
 STATES = [
     "starting",

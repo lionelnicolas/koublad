@@ -3,8 +3,8 @@ import threading
 
 import config
 
-import logger
-log = logger.initlog(__name__)
+import mod_logger
+log = mod_logger.initlog(__name__)
 
 class ClientHandler(SocketServer.BaseRequestHandler):
     def handle(self):

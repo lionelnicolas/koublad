@@ -6,8 +6,8 @@ import os
 import re
 import sys
 
-import logger
-log = logger.initlog(__name__)
+import mod_logger
+log = mod_logger.initlog(__name__)
 
 RE_PLUGIN_FILE = re.compile("^([^\.]+)\.py$")
 

@@ -263,6 +263,12 @@ class Status():
             if not resource.setPrimary():
                 log.fatal("Failed to set DRBD resource role")
 
+        if mod_plugins.switcher:
+            if mod_plugins.switcher.activate():
+                log.info("Failover switch activated")
+            else:
+                log.error("Failed to activate failover switch")
+
         self.SetState("master")
 
         log.info("We are now master")
@@ -274,6 +280,12 @@ class Status():
         log.info("Transitioning to slave")
 
         self.SetState("disabling")
+
+        if mod_plugins.switcher:
+            if mod_plugins.switcher.deactivate():
+                log.info("Failover switch deactivated")
+            else:
+                log.error("Failed to deactivate failover switch")
 
         for resource in mod_drbd.resources:
             log.info("Setting DRBD resource '%s' as secondary" % (resource.name))

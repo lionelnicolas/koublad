@@ -23,8 +23,8 @@ def initlog(name):
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-file_formatter   = logging.Formatter("%(asctime)s - %(name)-12s - %(levelname)-8s - %(message)s")
-stream_formatter = logging.Formatter("%(asctime)s.%(msecs)03d - %(name)-12s - %(levelname)-8s - %(message)s", datefmt="%H:%M:%S")
+file_formatter   = logging.Formatter("%(asctime)s - %(name)-8s - %(levelname)-6s - %(message)s")
+stream_formatter = logging.Formatter("%(asctime)s.%(msecs)03d - %(name)-8s - %(levelname)-6s - %(message)s", datefmt="%H:%M:%S")
 
 file_handler = logging.FileHandler('/tmp/failover.log')
 file_handler.setLevel(logging.DEBUG)

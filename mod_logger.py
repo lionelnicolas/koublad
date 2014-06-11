@@ -4,6 +4,7 @@
 import logging
 import signal
 import os
+import re
 import sys
 
 def critical_with_shutdown(self, msg, *args, **kwargs):
@@ -17,7 +18,7 @@ logging.Logger.critical = critical_with_shutdown
 logging.Logger.fatal    = logging.Logger.critical
 
 def initlog(name):
-    return logging.getLogger(name)
+    return logging.getLogger(re.sub("^mod_", "", name))
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

@@ -12,10 +12,10 @@ import threading
 import time
 
 import config
-import plugins
 import mod_drbd
 import mod_listener
 import mod_pinger
+import mod_plugins
 
 import logger
 log = logger.initlog("main")
@@ -155,16 +155,16 @@ class Monitor(threading.Thread):
                     if self.status.pstate != "master":
                         self.status.SetState("master")
 
-                    if plugins.quorum:
-                        if plugins.quorum.get():
+                    if mod_plugins.quorum:
+                        if mod_plugins.quorum.get():
                             log.info("We have enough quorum to remain master")
                         else:
                             log.info("We have not enough quorum to remain master")
                             self.status.Disable()
 
                 elif self.status.state == "slave":
-                    if plugins.quorum:
-                        if plugins.quorum.get():
+                    if mod_plugins.quorum:
+                        if mod_plugins.quorum.get():
                             if self.quorum_ok < 3:
                                 log.info("We have enough quorum to failover to us, but wait for few attempts")
                                 self.quorum_ok += 1
@@ -176,7 +176,7 @@ class Monitor(threading.Thread):
                         else:
                             log.info("We have not enough quorum to require failover to us")
 
-                    elif not plugins.quorum:
+                    elif not mod_plugins.quorum:
                         log.info("No quorum plugin defined, require failover to us")
                         self.status.NotifyMasterTransition()
 
@@ -317,11 +317,11 @@ def main():
     mod_drbd.load()
 
     config.show()
-    plugins.show()
+    mod_plugins.show()
     mod_drbd.show()
 
-    plugins.loadQuorum(config.quorum_plugin)
-    plugins.loadSwitcher(config.switcher_plugin)
+    mod_plugins.loadQuorum(config.quorum_plugin)
+    mod_plugins.loadSwitcher(config.switcher_plugin)
     print
 
     signal.signal(signal.SIGINT,  signal_handler)

@@ -6,7 +6,7 @@ import os
 import re
 import sys
 
-import plugins
+import mod_plugins
 
 import logger
 log = logger.initlog(__name__)
@@ -204,5 +204,5 @@ for name in config_checks.keys():
 
 
 # search for plugins
-plugins.search(plugin_dir)
+mod_plugins.search(plugin_dir)
 

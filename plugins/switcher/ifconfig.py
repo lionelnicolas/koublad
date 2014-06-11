@@ -1,11 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import socket
+import struct
 import subprocess
 import sys
 import time
 
 import config
+
+ETHER_BCAST = "\xff\xff\xff\xff\xff\xff" # FF:FF:FF:FF:FF:FF
+ETHER_TYPE  = 0x0806                     # ARP
+
+ARP_HTYPE = 1     # Ethernet
+ARP_PTYPE = 0x800 # IP
+ARP_HLEN  = 6     # Hardware address length
+ARP_PLEN  = 4     # Protocol address length
+ARP_OPER  = 1     # Request
 
 import mod_logger
 log = mod_logger.initlog(__name__)
@@ -58,13 +69,23 @@ def del_virtual_ip(interface, virtual_ip):
     return True
 
 def send_gratuitous_arp(interface, virtual_ip):
-    res, output = execute("arping -U %s -c 2 -I %s" % (virtual_ip, interface))
+    raw_socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
+    raw_socket.bind((interface, ETHER_TYPE))
 
-    if res:
-        log.error("failed to send gratuitous ARP on %s", interface)
-        return False
+    ether_src_addr = raw_socket.getsockname()[4]
 
-    return True
+    eth_layer  = ETHER_BCAST
+    eth_layer += ether_src_addr
+    eth_layer += struct.pack("!h", ETHER_TYPE)
+
+    arp_layer  = struct.pack("!hhBBh", ARP_HTYPE, ARP_PTYPE, ARP_HLEN, ARP_PLEN, ARP_OPER)
+    arp_layer += ether_src_addr
+    arp_layer += socket.inet_aton(virtual_ip)
+    arp_layer += ETHER_BCAST
+    arp_layer += socket.inet_aton(virtual_ip)
+
+    raw_socket.send(eth_layer+arp_layer)
+    raw_socket.close()
 
 ### PLUGIN INTERFACE ###
 

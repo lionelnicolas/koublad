@@ -42,7 +42,7 @@ def execute(cmd, timeout=10):
 
     if res == None:
         pipe.kill()
-        sys.stdout.write("Killed command '%s'" % (cmd))
+        log.warn("Killed command '%s'" % (cmd))
         res = 1
 
     return res, pipe.stdout.readlines()

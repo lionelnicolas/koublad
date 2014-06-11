@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import glob
-import os
-import random
-import re
 import signal
-import socket
-import sys
 import threading
 import time
 

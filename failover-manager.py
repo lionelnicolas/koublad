@@ -15,6 +15,7 @@ import drbd
 import config
 import plugins
 import mod_listener
+import mod_pinger
 
 import logger
 log = logger.initlog("main")
@@ -33,40 +34,6 @@ STATES = [
 
 loop     = True
 monitor  = False
-
-class Pinger(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-
-        self.loop   = True
-        self.sock   = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.wakeup = threading.Event()
-
-    def run(self):
-        log.info("Starting pinger")
-
-        global monitor
-
-        while self.loop:
-            self.send(monitor.status.state)
-            self.wakeup.wait(config.interval)
-            self.wakeup.clear()
-
-        log.info("Pinger stopped")
-
-    def stop(self):
-        log.info("Stopping pinger")
-
-        self.loop = False
-
-    def wake(self):
-        self.wakeup.set()
-
-    def send(self, data):
-        try:
-            self.sock.sendto(data, (config.peer_host, config.peer_port))
-        except Exception, e:
-            log.info("Failed to send data (%s)" % (e))
 
 class Monitor(threading.Thread):
     def __init__(self, listener, pinger):
@@ -361,10 +328,12 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     listener = mod_listener.Listener()
-    pinger   = Pinger()
+    pinger   = mod_pinger.Pinger()
     monitor  = Monitor(listener, pinger)
 
     listener.setMonitor(monitor)
+    pinger.setMonitor(monitor)
+
     monitor.start()
 
     while loop:

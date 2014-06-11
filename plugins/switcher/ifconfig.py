@@ -11,8 +11,8 @@ import mod_logger
 log = mod_logger.initlog(__name__)
 
 config_checks = {
-    "virtual_ip": { "type": "str", "default": False },
-    "interface":  { "type": "str", "default": "eth0:0" },
+    "virtual_ip": { "type": "str", "default": False,  "check": False },
+    "interface":  { "type": "str", "default": "eth0", "check": False},
 }
 
 config_optional = [

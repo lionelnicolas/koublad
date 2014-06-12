@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import logging.handlers
 import signal
 import os
 import re
@@ -25,6 +26,7 @@ logger.setLevel(logging.INFO)
 
 file_formatter   = logging.Formatter("%(asctime)s - %(name)-8s - %(levelname)-6s - %(message)s")
 stream_formatter = logging.Formatter("%(asctime)s.%(msecs)03d - %(name)-8s - %(levelname)-6s - %(message)s", datefmt="%H:%M:%S")
+syslog_formatter = logging.Formatter("failover:%(name)-8s - %(levelname)-6s - %(message)s")
 
 file_handler = logging.FileHandler('/tmp/failover.log')
 file_handler.setLevel(logging.DEBUG)
@@ -34,6 +36,11 @@ stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(stream_formatter)
 
+syslog_handler = logging.handlers.SysLogHandler(address="/dev/log", facility=logging.handlers.SysLogHandler.LOG_USER)
+syslog_handler.setLevel(logging.INFO)
+syslog_handler.setFormatter(syslog_formatter)
+
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
+logger.addHandler(syslog_handler)
 

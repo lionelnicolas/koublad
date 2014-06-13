@@ -10,6 +10,8 @@ import config
 import mod_logger
 log = mod_logger.initlog(__name__)
 
+import mod_utils
+
 config_checks = {
     "interval": { "type": "float", "default": 0.2, "check": ">= 0.2" },
     "hosts":    { "type": "list",  "default": [],  "check": "checkNonEmptyList(value)" },
@@ -18,33 +20,21 @@ config_checks = {
 config_optional = [
 ]
 
-def ping(host, count, interval, timeout):
-    pipe  = subprocess.Popen(["/bin/ping", "-n", "-c%d" % count, "-w%.1f" % timeout, "-i%.1f" % interval , host], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    res   = pipe.poll()
-    start = time.time()
-
-    while res == None and time.time() - start < timeout + 1:
-        res = pipe.poll()
-        time.sleep(0.1)
-    
-    if res == None:
-        pipe.kill()
-        log.warn("Killed ping to %s" % (host))
-        res = 1
-
-    return res
-
-
 ### PLUGIN INTERFACE ###
 
 # function called by monitor to get third party quorum status (return True on success)
 def get():
     global hosts
+    global interval
 
-    res = 0
+    ret     = 0
+    count   = 3
+    timeout = 3.0
+
     for host in hosts:
-        res += ping(host, 3, 0.2, 3)
-    
+        res, output  = mod_utils.execute("/bin/ping -n -c%d -w%.1f -i%.1f %s" % (count, timeout, interval , host))
+        ret         += res
+
     return not res
 
 # function called by monitor to update/send our status to a third party (return True on success)

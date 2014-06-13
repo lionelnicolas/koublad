@@ -12,6 +12,8 @@ import time
 import mod_logger
 log = mod_logger.initlog(__name__)
 
+import mod_utils
+
 RE_DRBD_RESOURCE   = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
 RE_DRBD_DEVICE     = re.compile("^[\ \t]*device[\ \t]+([a-z0-9/]+).*$")
 RE_DRBD_ROLE       = re.compile("^([^/]+)/([^\n]+)$")
@@ -30,22 +32,6 @@ FUSERKILL_TIMEOUT    = 3.0
 DRBD_SETROLE_TIMEOUT = 5.0
 
 resources = list()
-
-def execute(cmd, timeout=10):
-    pipe  = subprocess.Popen(cmd.split(' '), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    res   = pipe.poll()
-    start = time.time()
-
-    while res == None and time.time() - start < timeout:
-        res = pipe.poll()
-        time.sleep(0.1)
-
-    if res == None:
-        pipe.kill()
-        log.warn("Killed command '%s'" % (cmd))
-        res = 1
-
-    return res, pipe.stdout.readlines()
 
 class Resource():
     def __init__(self, name, device):
@@ -122,7 +108,7 @@ class Resource():
         return False
 
     def isInUse(self):
-        res, output = execute("fuser -v -m %s" % (self.device))
+        res, output = mod_utils.execute("fuser -v -m %s" % (self.device))
         in_use      = False
 
         for line in output:
@@ -135,7 +121,7 @@ class Resource():
         if self.isMounted():
             return True
 
-        res, output = execute("mount %s" % (self.device))
+        res, output = mod_utils.execute("mount %s" % (self.device))
         start       = time.time()
 
         if res:
@@ -159,13 +145,13 @@ class Resource():
             start = time.time()
 
             while self.isInUse() and time.time() - start <= FUSERKILL_TIMEOUT:
-                execute("fuser -k -m %s -TERM" % (self.device))
+                mod_utils.execute("fuser -k -m %s -TERM" % (self.device))
                 time.sleep(0.1)
 
             if time.time() - start > FUSERKILL_TIMEOUT:
-                execute("fuser -k -m %s -KILL" % (self.device))
+                mod_utils.execute("fuser -k -m %s -KILL" % (self.device))
 
-        res, output = execute("umount %s" % (self.device))
+        res, output = mod_utils.execute("umount %s" % (self.device))
         start       = time.time()
 
         if res:
@@ -191,7 +177,7 @@ class Resource():
         elif self.getLocalRole() == role:
             return True
 
-        res, output = execute("drbdadm %s %s" % (role, self.name))
+        res, output = mod_utils.execute("drbdadm %s %s" % (role, self.name))
         start       = time.time()
 
         if res:

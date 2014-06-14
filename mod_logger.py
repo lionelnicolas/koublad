@@ -19,7 +19,11 @@ logging.Logger.critical = critical_with_shutdown
 logging.Logger.fatal    = logging.Logger.critical
 
 def initlog(name):
-    return logging.getLogger(re.sub("^mod_", "", name))
+    name = re.sub("^mod_",      "", name)
+    name = re.sub("^quorum_",   "", name)
+    name = re.sub("^switcher_", "", name)
+
+    return logging.getLogger(name)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

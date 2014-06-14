@@ -64,8 +64,16 @@ def send_gratuitous_arp(interface, virtual_ip):
     arp_layer += ETHER_BCAST
     arp_layer += socket.inet_aton(virtual_ip)
 
-    raw_socket.send(eth_layer+arp_layer)
-    raw_socket.close()
+    try:
+        if raw_socket.send(eth_layer+arp_layer) < 0:
+            return False
+
+        raw_socket.close()
+
+    except:
+        return False
+
+    return True
 
 ### PLUGIN INTERFACE ###
 

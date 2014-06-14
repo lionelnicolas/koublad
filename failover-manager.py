@@ -10,6 +10,7 @@ import mod_drbd
 import mod_listener
 import mod_pinger
 import mod_plugins
+import mod_services
 
 import mod_logger
 log = mod_logger.initlog("main")
@@ -257,12 +258,17 @@ class Status():
 
         log.info("Transitioning to master")
 
+        # Start DRBD resources
         for resource in mod_drbd.resources:
             log.info("Setting DRBD resource '%s' as primary" % (resource.name))
 
             if not resource.setPrimary():
                 log.fatal("Failed to set DRBD resource role")
 
+        # Start system services
+        mod_services.start()
+
+        # Acquire IP address
         if mod_plugins.switcher:
             if mod_plugins.switcher.activate():
                 log.info("Failover switch activated")
@@ -281,12 +287,17 @@ class Status():
 
         self.SetState("disabling")
 
+        # Stop system services
+        mod_services.stop()
+
+        # Release IP address
         if mod_plugins.switcher:
             if mod_plugins.switcher.deactivate():
                 log.info("Failover switch deactivated")
             else:
                 log.error("Failed to deactivate failover switch")
 
+        # Stop DRBD resources
         for resource in mod_drbd.resources:
             log.info("Setting DRBD resource '%s' as secondary" % (resource.name))
 

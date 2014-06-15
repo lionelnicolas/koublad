@@ -1,0 +1,21 @@
+.TH FAILOVER.CONF 5
+.SH NAME
+failover-manager \- daemon that monitors another node's availability and can perform failover actions when needed.
+.SH SYNOPSIS
+.B failover-manager
+.SH DESCRIPTION
+.B failover-manager
+is a small daemon which runs on two different servers (nodes) to handle high availability on a master/slave cluster, and performs failover actions if needed.
+.PP
+Each instance monitors the other node's availability via UDP pings (heartbeats) and the slave node can do a series of action to become master when the other node becomes unreachable if certain conditions are true (ex: an external host is reachable by ping, simulating a quorum mechanism in larger clusters).
+.SH FILES
+.TP
+.I /etc/failover.conf
+The system wide configuration file. See
+.BR failover.conf (5)
+for further details.
+.TP
+.I /var/log/failover-manager.log
+File where the daemon writes its log events.
+.SH AUTHORS
+Lionel Nicolas

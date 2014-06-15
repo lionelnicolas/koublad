@@ -18,9 +18,9 @@ all-src: distclean package-deb-src package-rpm-src
 
 build-dir-prepare: clean
 	mkdir -pv $(BUILD_DIR)
-	for DIR in `git ls-files --exclude-standard | xargs dirname`; do mkdir -p $(BUILD_DIR)/$${DIR}; done
-	for FILE in `git ls-files --exclude-standard`; do cp -v $${FILE} $(BUILD_DIR)/$${FILE}; done
+	for FILE in `git ls-files --exclude-standard`; do mkdir -p $(BUILD_DIR)/`dirname $${FILE}`; cp -v $${FILE} $(BUILD_DIR)/$${FILE}; done
 	/bin/echo -ne "PACKAGE=\"$(PACKAGE)\"\nVERSION=\"$(VERSION)\"\n" >$(BUILD_DIR)/_vars.py
+	/bin/echo -ne "include *.conf\ninclude *.py\nrecursive-include plugins *.py\n" >$(BUILD_DIR)/MANIFEST.in
 
 build-dir-clean:
 	rm -rf $(BUILD_DIR)
@@ -46,6 +46,7 @@ package-deb-bin: package-deb-src
 package-rpm-src: build-dir-prepare
 	cd $(BUILD_DIR) && python setup.py bdist_rpm --spec-only
 	cd $(BUILD_DIR) && python setup.py sdist
+	sed -ri 's#(python setup.py install .*)#\1\nsed -ri "s@^(.*\.py)@\\1*@" INSTALLED_FILES#' $(BUILD_DIR)/dist/$(PACKAGE)*.spec
 	mkdir -pv $(PKG_DIR_RPM)
 	cp -vf $(BUILD_DIR)/dist/$(PACKAGE)*.tar.gz $(PKG_DIR_RPM)
 	cp -vf $(BUILD_DIR)/dist/$(PACKAGE)*.spec   $(PKG_DIR_RPM)

@@ -3,6 +3,7 @@
 
 import glob
 import os
+import _vars
 
 from distutils.core import setup
 
@@ -33,8 +34,8 @@ STDEB_CFG = \
     "Package: %s\n" % (_vars.PACKAGE)
 
 setup(
-    name               = "failover-manager",
-    version            = "0.1.0",
+    name               = _vars.PACKAGE,
+    version            = _vars.VERSION,
     description        = "A failover handler for master-slave clusters",
     long_description   = "Failover Manager is a small daemon which runs on two different servers (nodes) to handle high\n"
                          "availability on a master/slave cluster, and performs failover actions if needed.\n"
@@ -48,7 +49,7 @@ setup(
     license            = "GPLv3",
     data_files         = [
         ( "/etc",                                         [ "failover.conf" ]),
-        ( "/usr/share/failover-manager",                  glob.glob("./mod_*.py") + [ "config.py", "failover-manager.py"] ),
+        ( "/usr/share/failover-manager",                  glob.glob("./mod_*.py") + [ "config.py", "failover-manager.py", "_vars.py" ] ),
         ( "/usr/share/failover-manager/plugins/quorum",   glob.glob("./plugins/quorum/*.py")),
         ( "/usr/share/failover-manager/plugins/switcher", glob.glob("./plugins/switcher/*.py")),
     ],

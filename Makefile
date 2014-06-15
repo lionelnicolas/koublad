@@ -1,4 +1,7 @@
-BUILD_DIR=build_dir
+BUILD_DIR:=build_dir
+PACKAGE:=failover-manager
+VERSION:=0.1.1-g$(shell git rev-parse --short HEAD)
+
 PKG_DIR=packaging
 PKG_DIR_DEB=$(PKG_DIR)/deb
 PKG_DIR_RPM=$(PKG_DIR)/rpm
@@ -17,6 +20,7 @@ build-dir-prepare: clean
 	mkdir -pv $(BUILD_DIR)
 	for DIR in `git ls-files --exclude-standard | xargs dirname`; do mkdir -p $(BUILD_DIR)/$${DIR}; done
 	for FILE in `git ls-files --exclude-standard`; do cp -v $${FILE} $(BUILD_DIR)/$${FILE}; done
+	/bin/echo -ne "PACKAGE=\"$(PACKAGE)\"\nVERSION=\"$(VERSION)\"\n" >$(BUILD_DIR)/_vars.py
 
 build-dir-clean:
 	rm -rf $(BUILD_DIR)

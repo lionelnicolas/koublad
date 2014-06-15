@@ -32,7 +32,7 @@ file_formatter   = logging.Formatter("%(asctime)s - %(name)-8s - %(levelname)-7s
 stream_formatter = logging.Formatter("%(asctime)s.%(msecs)03d - %(name)-8s - %(levelname)-7s - %(message)s", datefmt="%H:%M:%S")
 syslog_formatter = logging.Formatter("failover: %(name)-8s - %(levelname)-7s - %(message)s")
 
-file_handler = logging.FileHandler('/var/log/failover-manager.log')
+file_handler = logging.FileHandler('/var/log/koublad.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(file_formatter)
 

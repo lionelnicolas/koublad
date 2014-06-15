@@ -1,5 +1,5 @@
 BUILD_DIR:=build_dir
-PACKAGE:=failover-manager
+PACKAGE:=koublad
 VERSION:=0.1.1-$(shell date +%s)
 
 PKG_DIR=packaging

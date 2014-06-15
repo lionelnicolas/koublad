@@ -22,7 +22,7 @@ def create_file(filepath, content, mode=0755):
 POST_INSTALL = \
     "#!/bin/sh\n" \
     "\n" \
-    "ln -sf /usr/share/failover-manager/failover-manager.py /usr/sbin/failover-manager\n"
+    "ln -sf /usr/share/koublad/koublad.py /usr/sbin/koublad\n"
 
 PRE_UNINSTALL = \
     "#!/bin/sh\n" \
@@ -37,7 +37,7 @@ setup(
     name               = _vars.PACKAGE,
     version            = _vars.VERSION,
     description        = "A failover handler for master-slave clusters",
-    long_description   = "Failover Manager is a small daemon which runs on two different servers (nodes) to handle high\n"
+    long_description   = "Koublad is a small daemon which runs on two different servers (nodes) to handle high\n"
                          "availability on a master/slave cluster, and performs failover actions if needed.\n"
                          "\n"
                          "Each instance monitors UDP pings to detect that the other node is alive. If it's not the case,\n"
@@ -45,13 +45,13 @@ setup(
                          "implementation).",
     author             = "Lionel Nicolas",
     author_email       = "lionel.nicolas@nividic.org",
-    url                = "https://github.com/lionelnicolas/failover-manager",
+    url                = "https://github.com/lionelnicolas/koublad",
     license            = "GPLv3",
     data_files         = [
-        ( "/etc",                                         [ "failover.conf" ]),
-        ( "/usr/share/failover-manager",                  glob.glob("./mod_*.py") + [ "config.py", "failover-manager.py", "_vars.py" ] ),
-        ( "/usr/share/failover-manager/plugins/quorum",   glob.glob("./plugins/quorum/*.py")),
-        ( "/usr/share/failover-manager/plugins/switcher", glob.glob("./plugins/switcher/*.py")),
+        ( "/etc",                                [ "koublad.conf" ]),
+        ( "/usr/share/koublad",                  glob.glob("./mod_*.py") + [ "config.py", "koublad.py", "_vars.py" ] ),
+        ( "/usr/share/koublad/plugins/quorum",   glob.glob("./plugins/quorum/*.py")),
+        ( "/usr/share/koublad/plugins/switcher", glob.glob("./plugins/switcher/*.py")),
     ],
     options = {
         'bdist_rpm': {

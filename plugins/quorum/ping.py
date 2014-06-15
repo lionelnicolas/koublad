@@ -41,11 +41,11 @@ def get():
 def update():
     return True
 
-# function called by monitor during failover-manager startup (return True on success)
+# function called by monitor during koublad startup (return True on success)
 def run():
     return True
 
-# function called by monitor during failover-manager tear down (return True on success)
+# function called by monitor during koublad tear down (return True on success)
 def terminate():
     return True
 

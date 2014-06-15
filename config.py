@@ -11,7 +11,7 @@ import mod_plugins
 import mod_logger
 log = mod_logger.initlog(__name__)
 
-CONFIG_FILE = "/etc/failover.conf"
+CONFIG_FILE = "/etc/koublad.conf"
 DRBD_DIR    = "/etc/drbd.d"
 PLUGIN_DIR  = "plugins/"
 

@@ -27,7 +27,12 @@ POST_INSTALL = \
 PRE_UNINSTALL = \
     "#!/bin/sh\n" \
     "\n" \
-    "rm -f /usr/sbin/failover-manager\n"
+    "rm -f /usr/sbin/koublad\n" \
+    "\n" \
+    "# on Debian family distributions, we need to remove *.pyc and *.pyo files\n" \
+    "if [ -f /etc/debian_version ]; then\n" \
+    "\tfind /usr/share/koublad -type f -name '*.py[co]' -delete\n" \
+    "fi\n"
 
 STDEB_CFG = \
     "[DEFAULT]\n" \

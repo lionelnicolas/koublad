@@ -3,7 +3,12 @@ PKG_DIR=packaging
 PKG_DIR_DEB=$(PKG_DIR)/deb
 PKG_DIR_RPM=$(PKG_DIR)/rpm
 
-all: package-deb-bin package-rpm-bin
+all: distclean package-deb-bin package-rpm-bin
+	@echo
+	@echo "$(PACKAGE) has been fully built"
+	@find $(PKG_DIR)
+
+all-src: distclean package-deb-src package-rpm-src
 	@echo
 	@echo "$(PACKAGE) has been fully built"
 	@find $(PKG_DIR)

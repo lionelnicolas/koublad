@@ -3,12 +3,12 @@ PKG_DIR=packaging
 PKG_DIR_DEB=$(PKG_DIR)/deb
 PKG_DIR_RPM=$(PKG_DIR)/rpm
 
-all: package-deb-src package-rpm-src
+all: package-deb-bin package-rpm-bin
 	@echo
-	@echo "failover-manager has been fully built"
+	@echo "$(PACKAGE) has been fully built"
 	@find $(PKG_DIR)
 
-build-dir-prepare:
+build-dir-prepare: clean
 	mkdir -pv $(BUILD_DIR)
 	for DIR in `git ls-files --exclude-standard | xargs dirname`; do mkdir -p $(BUILD_DIR)/$${DIR}; done
 	for FILE in `git ls-files --exclude-standard`; do cp -v $${FILE} $(BUILD_DIR)/$${FILE}; done
@@ -23,24 +23,27 @@ distclean: clean
 	rm -rf $(PKG_DIR_DEB)
 	rm -rf $(PKG_DIR)
 
-package-deb-src: clean build-dir-prepare
+package-deb-src: build-dir-prepare
 	cd $(BUILD_DIR) && python setup.py --command-packages=stdeb.command sdist_dsc
 	mkdir -pv $(PKG_DIR_DEB)
 	cp -vf $(BUILD_DIR)/deb_dist/*.tar.gz $(PKG_DIR_DEB)
 	cp -vf $(BUILD_DIR)/deb_dist/*.dsc    $(PKG_DIR_DEB)
 
-package-rpm-src: clean build-dir-prepare
+package-deb-bin: package-deb-src
+	cd $(BUILD_DIR) && python setup.py --command-packages=stdeb.command bdist_deb
+	mkdir -pv $(PKG_DIR_DEB)
+	cp -vf $(BUILD_DIR)/deb_dist/$(PACKAGE)*.deb $(PKG_DIR_DEB)
+
+package-rpm-src: build-dir-prepare
 	cd $(BUILD_DIR) && python setup.py bdist_rpm --spec-only
 	cd $(BUILD_DIR) && python setup.py sdist
 	mkdir -pv $(PKG_DIR_RPM)
-	cp -vf $(BUILD_DIR)/dist/*.tar.gz $(PKG_DIR_RPM)
-	cp -vf $(BUILD_DIR)/dist/*.spec   $(PKG_DIR_RPM)
+	cp -vf $(BUILD_DIR)/dist/$(PACKAGE)*.tar.gz $(PKG_DIR_RPM)
+	cp -vf $(BUILD_DIR)/dist/$(PACKAGE)*.spec   $(PKG_DIR_RPM)
 
-package-rpm-bin:
-	@echo "Not implemented"
-
-package-deb-bin: build-dir-prepare
-	cd $(BUILD_DIR) && python setup.py --command-packages=stdeb.command bdist_deb
-	mkdir -pv $(PKG_DIR_DEB)
-	cp -vf $(BUILD_DIR)/deb_dist/*.deb $(PKG_DIR_DEB)
+package-rpm-bin: package-rpm-src
+	mkdir -p $(BUILD_DIR)/dist/SOURCES
+	cp $(BUILD_DIR)/dist/$(PACKAGE)*.tar.gz $(BUILD_DIR)/dist/SOURCES
+	cd $(BUILD_DIR)/dist && rpmbuild --define "_topdir `pwd`" -ba $(PACKAGE).spec
+	find $(BUILD_DIR)/dist -name '*.rpm' -exec cp -v {} $(PKG_DIR_RPM) \;
 

@@ -54,6 +54,7 @@ setup(
     license            = "GPLv3",
     data_files         = [
         ( "/etc",                                [ "koublad.conf" ]),
+        ( "/etc/init.d",                         [ "koublad" ]),
         ( "/usr/share/koublad",                  glob.glob("./mod_*.py") + [ "config.py", "koublad.py", "_vars.py" ] ),
         ( "/usr/share/koublad/plugins/quorum",   glob.glob("./plugins/quorum/*.py")),
         ( "/usr/share/koublad/plugins/switcher", glob.glob("./plugins/switcher/*.py")),

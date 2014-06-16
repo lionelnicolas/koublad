@@ -19,6 +19,7 @@ all-src: distclean package-deb-src package-rpm-src
 build-dir-prepare: clean
 	mkdir -pv $(BUILD_DIR)
 	for FILE in `git ls-files --exclude-standard`; do mkdir -p $(BUILD_DIR)/`dirname $${FILE}`; cp -v $${FILE} $(BUILD_DIR)/$${FILE}; done
+	mv $(BUILD_DIR)/koublad.init $(BUILD_DIR)/koublad
 	/bin/echo -ne "PACKAGE=\"$(PACKAGE)\"\nVERSION=\"$(VERSION)\"\n" >$(BUILD_DIR)/_vars.py
 	/bin/echo -ne "include *.conf\ninclude *.py\nrecursive-include plugins *.py\n" >$(BUILD_DIR)/MANIFEST.in
 

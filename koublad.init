@@ -1,0 +1,197 @@
+#!/bin/sh
+#
+# koublad		Start up the Koublad daemon
+#
+# chkconfig: 2345 55 25
+# description: A failover handler for master-slave clusters
+#
+# processname: koublad
+# config: /etc/koublad.conf
+# pidfile: /var/run/koublad.pid
+
+### BEGIN INIT INFO
+# Provides: koublad
+# Required-Start: $local_fs $network $syslog
+# Required-Stop: $local_fs $syslog
+# Should-Start: $syslog
+# Should-Stop: $network $syslog
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: A failover handler for master-slave clusters
+### END INIT INFO
+
+if [ -f /etc/redhat-release ]; then
+	OSFAMILY=redhat
+elif [ -f /etc/os-release ]; then
+	. /etc/os-release
+	OSFAMILY=${ID}
+else
+	OSFAMILY=unknown
+fi
+
+case ${OSFAMILY} in
+	debian|ubuntu)
+		. /lib/lsb/init-functions
+		test -f /etc/default/koublad && . /etc/default/koublad
+		;;
+
+	redhat)
+		. /etc/rc.d/init.d/functions
+		test -f /etc/sysconfig/koublad && . /etc/sysconfig/koublad
+		;;
+
+	*)
+		echo "Distribution not supported"
+		exit 1
+		;;
+esac
+
+RETVAL=0
+PID_FILE=/var/run/koublad.pid
+KOUBLAD=/usr/sbin/koublad
+PROG_NAME=koublad
+CONFIG_FILE=/etc/koublad.conf
+
+get_pid() {
+	if [ -f ${PID_FILE} ]; then
+		cat ${PID_FILE}
+	fi
+}
+
+send_kill() {
+	# Get pid
+	PID=`get_pid`
+
+	if [ -z "${PID}" ]; then
+		return 0
+	fi
+
+	# Send SIGTERM
+	kill -TERM ${PID}
+
+	TIMEOUT=15
+	UNTIL=$((`date +%s`+${TIMEOUT}))
+
+	# Wait for process shutdown
+	while [ -d /proc/${PID} -a `date +%s` -lt ${UNTIL} ]; do
+		sleep .1
+	done
+
+	# Process is still running, send SIGKILL
+	if [ -d /proc/${PID} ]; then
+		kill -KILL ${PID}
+	fi
+
+	return 0
+}
+
+start() {
+	test -x ${KOUBLAD}     || exit 5
+	test -f ${CONFIG_FILE} || exit 6
+
+	case ${OSFAMILY} in
+		debian|ubuntu)
+			log_daemon_msg "Starting" "${PROG_NAME}" || true
+
+			${KOUBLAD} >/dev/null 2>&1 &
+			RETVAL=$?
+			echo $! >${PID_FILE}
+
+			if [ ${RETVAL} -eq 0 ]; then
+				log_end_msg 0 || true
+			else
+				rm -f ${PID_FILE}
+				log_end_msg 1 || true
+			fi
+
+			return ${RETVAL}
+			;;
+		redhat)
+			echo -n $"Starting ${PROG_NAME}: "
+
+			${KOUBLAD} >/dev/null 2>&1 &
+			RET=$?
+			echo $! >${PID_FILE}
+
+			if [ ${RET} -eq 0 ]; then
+				success
+			else
+				rm -f ${PID_FILE}
+				failure
+			fi
+
+			return ${RETVAL}
+			;;
+	esac
+}
+
+stop() {
+	case ${OSFAMILY} in
+		debian|ubuntu)
+			log_daemon_msg "Stopping" "${PROG_NAME}" || true
+
+			if send_kill; then
+				rm -f ${PID_FILE}
+				log_end_msg 0 || true
+			else
+				log_end_msg 1 || true
+			fi
+			;;
+
+		redhat)
+			echo -n $"Stopping ${PROG_NAME}: "
+
+			if send_kill; then
+				rm -f ${PID_FILE}
+				success
+			else
+				failure
+			fi
+			;;
+	esac
+	echo
+}
+
+restart() {
+	stop
+	start
+}
+
+status() {
+	PID=`get_pid`
+
+	if [ -z "${PID}" -o ! -d /proc/${PID} ]; then
+		echo "${PROG_NAME} is not running"
+		return 1
+	else
+		echo "${PROG_NAME} is running (PID ${PID})"
+		return 0
+	fi
+}
+
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		restart
+		;;
+	reload)
+		restart
+		;;
+	status)
+		if status; then
+			RETVAL=0
+		else
+			RETVAL=2
+		fi
+		;;
+	*)
+		echo $"Usage: $0 {start|stop|restart|reload|status}"
+		RETVAL=2
+esac
+exit $RETVAL
+

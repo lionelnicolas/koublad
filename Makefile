@@ -26,7 +26,10 @@ build-dir-prepare: clean
 build-dir-clean:
 	rm -rf $(BUILD_DIR)
 
-clean: build-dir-clean
+clean: build-dir-clean pyc-clean
+
+pyc-clean:
+	find . -type f -name '*.pyc' -delete
 
 distclean: clean
 	rm -rf $(PKG_DIR_RPM)

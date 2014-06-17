@@ -51,8 +51,9 @@ STDEB_CFG = \
     "Package: %s\n" % (_vars.PACKAGE)
 
 DEFAULT_FILE = \
-    "# Defaults for koublad - sourced by /etc/init.d/puppet\n" \
+    "# Defaults for koublad - sourced by /etc/init.d/koublad\n" \
     "\n" \
+    "# set this to 1 to enable koublad service\n" \
     "ENABLE=0\n"
 
 DATA_FILES = [

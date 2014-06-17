@@ -32,12 +32,12 @@ fi
 case ${OSFAMILY} in
 	debian|ubuntu)
 		. /lib/lsb/init-functions
-		test -f /etc/default/koublad && . /etc/default/koublad
+		DEFAULT_FILE=/etc/default/koublad
 		;;
 
 	redhat)
 		. /etc/rc.d/init.d/functions
-		test -f /etc/sysconfig/koublad && . /etc/sysconfig/koublad
+		DEFAULT_FILE=/etc/sysconfig/koublad
 		;;
 
 	*)
@@ -47,10 +47,13 @@ case ${OSFAMILY} in
 esac
 
 RETVAL=0
+ENABLE=0
 PID_FILE=/var/run/koublad.pid
 KOUBLAD=/usr/sbin/koublad
 PROG_NAME=koublad
 CONFIG_FILE=/etc/koublad.conf
+
+test -f ${DEFAULT_FILE} && . ${DEFAULT_FILE}
 
 get_pid() {
 	if [ -f ${PID_FILE} ]; then
@@ -88,6 +91,11 @@ send_kill() {
 start() {
 	test -x ${KOUBLAD}     || exit 5
 	test -f ${CONFIG_FILE} || exit 6
+
+	if [ "${ENABLE}" -ne 1 ]; then
+		echo "${PROG_NAME} is not enabled. Please check ${DEFAULT_FILE}."
+		exit 0
+	fi
 
 	case ${OSFAMILY} in
 		debian|ubuntu)

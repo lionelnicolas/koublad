@@ -3,9 +3,19 @@
 
 import glob
 import os
+import sys
+
 import _vars
 
 from distutils.core import setup
+
+def get_build_target():
+    if   os.environ.has_key("RPM_ARCH") or "sdist" in sys.argv or "bdist_rpm" in sys.argv:
+        return "redhat"
+    elif os.environ.has_key("DEB_BUILD_ARCH") or "sdist_dsc" in sys.argv:
+        return "debian"
+
+    return False
 
 def create_file(filepath, content, mode=0755):
     dirpath = os.path.dirname(filepath)
@@ -40,6 +50,30 @@ STDEB_CFG = \
     "[DEFAULT]\n" \
     "Package: %s\n" % (_vars.PACKAGE)
 
+DEFAULT_FILE = \
+    "# Defaults for koublad - sourced by /etc/init.d/puppet\n" \
+    "\n" \
+    "ENABLE=0\n"
+
+DATA_FILES = [
+    ( "/etc",                                [ "koublad.conf" ]),
+    ( "/etc/init.d",                         [ "koublad" ]),
+    ( "/usr/share/koublad",                  glob.glob("./mod_*.py") + [ "config.py", "koublad.py", "_vars.py" ] ),
+    ( "/usr/share/koublad/plugins/quorum",   glob.glob("./plugins/quorum/*.py")),
+    ( "/usr/share/koublad/plugins/switcher", glob.glob("./plugins/switcher/*.py")),
+    ( "/usr/share/man/man8",                 ["koublad.8"]),
+    ( "/usr/share/man/man5",                 ["koublad.conf.5"]),
+]
+
+if   get_build_target() == "redhat":
+    DATA_FILES.append(( "/etc/sysconfig", [ create_file("default/koublad", DEFAULT_FILE, 0644) ]))
+
+elif get_build_target() == "debian":
+    DATA_FILES.append(( "/etc/default",   [ create_file("default/koublad", DEFAULT_FILE, 0644) ]))
+
+for i in DATA_FILES:
+    print i
+
 setup(
     name               = _vars.PACKAGE,
     version            = _vars.VERSION,
@@ -54,15 +88,7 @@ setup(
     author_email       = "lionel.nicolas@nividic.org",
     url                = "https://github.com/lionelnicolas/koublad",
     license            = "GPLv3",
-    data_files         = [
-        ( "/etc",                                [ "koublad.conf" ]),
-        ( "/etc/init.d",                         [ "koublad" ]),
-        ( "/usr/share/koublad",                  glob.glob("./mod_*.py") + [ "config.py", "koublad.py", "_vars.py" ] ),
-        ( "/usr/share/koublad/plugins/quorum",   glob.glob("./plugins/quorum/*.py")),
-        ( "/usr/share/koublad/plugins/switcher", glob.glob("./plugins/switcher/*.py")),
-        ( "/usr/share/man/man8", ["koublad.8"]),
-        ( "/usr/share/man/man5", ["koublad.conf.5"]),
-    ],
+    data_files         = DATA_FILES,
     options = {
         'bdist_rpm': {
             'post_install':  create_file("post_install",  POST_INSTALL,  0755),

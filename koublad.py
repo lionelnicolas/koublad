@@ -327,6 +327,7 @@ def signal_handler(signum, frame):
 def main():
     global loop
     global monitor
+    config.parse()
 
     mod_drbd.load()
 

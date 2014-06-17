@@ -7,39 +7,8 @@ import re
 import sys
 
 import mod_plugins
-
 import mod_logger
 log = mod_logger.initlog(__name__)
-
-CONFIG_FILE = "/etc/koublad.conf"
-DRBD_DIR    = "/etc/drbd.d"
-PLUGIN_DIR  = "plugins/"
-
-RE_CONFIG_LINE   = re.compile("^[\ \t]*()([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
-RE_CONFIG_LINE_P = re.compile("^[\ \t]*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
-RE_DRBD_RESOURCE = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
-
-config_checks = {
-    "port":            { "type": "int",   "default": 4997,       "check": "> 1024" },
-    "role":            { "type": "str",   "default": False,      "check": "in ['master', 'slave']" },
-    "initdead":        { "type": "float", "default": 5.0,        "check": "> 0.0" },
-    "peer_host":       { "type": "str",   "default": False,      "check": False },
-    "peer_port":       { "type": "int",   "default": False,      "check": "> 1024" },
-    "timeout":         { "type": "float", "default": 2.0,        "check": ">= 0.1" },
-    "interval":        { "type": "float", "default": 0.2,        "check": ">= 0.2" },
-    "services":        { "type": "list",  "default": [],         "check": "checkServices(value)" },
-    "drbd_resources":  { "type": "list",  "default": [],         "check": "checkDrbdResources(value)" },
-    "plugin_dir":      { "type": "str",   "default": PLUGIN_DIR, "check": "checkDirectory(value)" },
-    "quorum_plugin":   { "type": "str",   "default": False,      "check": "checkQuorumPlugin(value)" },
-    "switcher_plugin": { "type": "str",   "default": False,      "check": "checkSwitcherPlugin(value)" },
-}
-
-config_optional = [
-    "quorum_plugin",
-    "switcher_plugin",
-]
-
-config_dict = dict()
 
 def splitIntoList(value):
     if   len(value) == 0:       return []
@@ -131,6 +100,9 @@ def defaultVariables(config_checks):
     return config_dict
 
 def parseConfigurationFile(config_file, config_checks, config_optional, config_dict, plugin_name=False):
+    RE_CONFIG_LINE   = re.compile("^[\ \t]*()([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
+    RE_CONFIG_LINE_P = re.compile("^[\ \t]*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
+    RE_DRBD_RESOURCE = re.compile("^[\ \t]*resource[\ \t]+([a-z0-9]+).*$")
     for line in open(config_file).readlines():
         if plugin_name:
             match = RE_CONFIG_LINE_P.match(line)
@@ -175,34 +147,62 @@ def show(data=False):
         print "%-16s: %s" % (name, data[name])
     print
 
+def parse_cmdline():
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("--drbd-dir", dest="drbd_dir",
+                  help="force specific DRBD directory", metavar="FILE", default="/etc/drbd.d")
+    parser.add_option("-c", "--config", dest="config",
+                  help="Uses specified config file", metavar="FILE", default="/etc/koublad.conf")
+    parser.add_option("-q", "--quiet",
+                  action="store_false", dest="verbose", default=True,
+                  help="Do not print status messages to stderr")
+    parser.add_option("-d", "--no-daemonize",
+                  action="store_false", dest="daemonize", default=True,
+                  help="Do not start as a daemon (keep process attached to current TTY)")
+    return parser.parse_args()
 
-# set configuration file path
-if len(sys.argv) > 1: config_file = sys.argv[1]
-else:                 config_file = CONFIG_FILE
+def parse():
+    options, args = parse_cmdline()
 
-checkFile(config_file)
+    global config_file
+    config_file = options.config
 
+    global drbd_dir
+    drbd_dir = options.drbd_dir
 
-# set DRBD configuration directory
-if len(sys.argv) > 2: drbd_dir = sys.argv[2]
-else:                 drbd_dir = DRBD_DIR
+    global config_dict
+    config_dict = dict()
 
-checkDirectory(drbd_dir)
+    config_checks = {
+        "port":            { "type": "int",   "default": 4997,       "check": "> 1024" },
+        "role":            { "type": "str",   "default": False,      "check": "in ['master', 'slave']" },
+        "initdead":        { "type": "float", "default": 5.0,        "check": "> 0.0" },
+        "peer_host":       { "type": "str",   "default": False,      "check": False },
+        "peer_port":       { "type": "int",   "default": False,      "check": "> 1024" },
+        "timeout":         { "type": "float", "default": 2.0,        "check": ">= 0.1" },
+        "interval":        { "type": "float", "default": 0.2,        "check": ">= 0.2" },
+        "services":        { "type": "list",  "default": [],         "check": "checkServices(value)" },
+        "drbd_resources":  { "type": "list",  "default": [],         "check": "checkDrbdResources(value)" },
+        "plugin_dir":      { "type": "str",   "default": "plugins/", "check": "checkDirectory(value)" },
+        "quorum_plugin":   { "type": "str",   "default": False,      "check": "checkQuorumPlugin(value)" },
+        "switcher_plugin": { "type": "str",   "default": False,      "check": "checkSwitcherPlugin(value)" },
+    }
+    config_optional = [
+        "quorum_plugin",
+        "switcher_plugin",
+    ]
 
+    # set default values
+    config_dict = defaultVariables(config_checks)
 
-# set default values
-config_dict = defaultVariables(config_checks)
+    # parse configuration file
+    config_dict = parseConfigurationFile(config_file, config_checks, config_optional, config_dict)
 
+    # set variable globaly (seems ugly to use exec(), maybe use globals() dict in the future
+    for name in config_checks.keys():
+        exec("globals()['%s'] = config_dict[name]" % (name))
 
-# parse configuration file
-config_dict = parseConfigurationFile(config_file, config_checks, config_optional, config_dict)
-
-
-# set variable globaly (seems ugly to use exec(), maybe use globals() dict in the future
-for name in config_checks.keys():
-    exec("%s = config_dict[name]" % (name))
-
-
-# search for plugins
-mod_plugins.search(plugin_dir)
+    # search for plugins
+    mod_plugins.search(plugin_dir)
 

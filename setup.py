@@ -19,6 +19,8 @@ def create_file(filepath, content, mode=0755):
 
     os.chmod(filepath, mode)
 
+    return filepath
+
 POST_INSTALL = \
     "#!/bin/sh\n" \
     "\n" \

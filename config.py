@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import glob
+import optparse
 import os
 import re
 import sys
@@ -148,8 +149,8 @@ def show(data=False):
     print
 
 def parse_cmdline():
-    from optparse import OptionParser
-    parser = OptionParser()
+    parser = optparse.OptionParser()
+
     parser.add_option("--drbd-dir", dest="drbd_dir",
                   help="force specific DRBD directory", metavar="FILE", default="/etc/drbd.d")
     parser.add_option("-c", "--config", dest="config",

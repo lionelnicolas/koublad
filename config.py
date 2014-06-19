@@ -161,6 +161,9 @@ def parse_cmdline():
     parser.add_option("-d", "--no-daemonize",
                   action="store_false", dest="daemonize", default=True,
                   help="Do not start as a daemon (keep process attached to current TTY)")
+    parser.add_option("-p", "--pid-file", dest="pid_file",
+                  help="set the PID file", metavar="FILE", default="/var/run/koublad.pid")
+
     return parser.parse_args()
 
 def parse():

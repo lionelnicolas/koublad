@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import atexit
 import os
 import signal
 import sys
@@ -326,6 +327,25 @@ def signal_handler(signum, frame):
         monitor.status.Shutdown()
         monitor.stop()
 
+def create_pidfile():
+    # create/write pidfile
+
+    log.info("Writing PID file ...")
+
+    try:
+        fd = open(config.options.pid_file, "w")
+        fd.write("%d" % (os.getpid()))
+        fd.close()
+    except Exception, e:
+        log.fatal("Failed to write PID file: %s" % (str(e)))
+
+    # register pidfile deletion
+    atexit.register(remove_pidfile)
+
+def remove_pidfile():
+    log.info("Removing PID file ...")
+    os.remove(config.options.pid_file)
+
 def daemonize():
     # use double-fork to daemonize
     # see http://www.linuxjedi.co.uk/2014/02/why-use-double-fork-to-daemonize.html
@@ -362,6 +382,8 @@ def main():
 
     if config.options.daemonize:
         daemonize()
+
+    create_pidfile()
 
     config.show()
     mod_plugins.show()

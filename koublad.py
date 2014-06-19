@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import signal
+import sys
 import threading
 import time
 
@@ -324,12 +326,42 @@ def signal_handler(signum, frame):
         monitor.status.Shutdown()
         monitor.stop()
 
+def daemonize():
+    # use double-fork to daemonize
+    # see http://www.linuxjedi.co.uk/2014/02/why-use-double-fork-to-daemonize.html
+
+    # do the initial fork
+    if os.fork() > 0:
+        # exit initial process
+        sys.exit(0)
+
+    # set the first fork to be the leader of a new session with no controlling terminals
+    os.setsid()
+    os.umask(0)
+
+    # do the second fork
+    if os.fork() > 0:
+        # exit current session leader
+        sys.exit(0)
+
+    # current process is now a child of the 'init' process, so we can redirect all I/O descriptors to /dev/null
+    fd_stdin  = open("/dev/null", "r")
+    fd_stdout = open("/dev/null", "a+")
+    fd_stderr = open("/dev/null", "a+")
+
+    os.dup2(fd_stdin.fileno(),  sys.stdin.fileno())
+    os.dup2(fd_stdout.fileno(), sys.stdout.fileno())
+    os.dup2(fd_stderr.fileno(), sys.stderr.fileno())
+
 def main():
     global loop
     global monitor
-    config.parse()
 
+    config.parse()
     mod_drbd.load()
+
+    if config.options.daemonize:
+        daemonize()
 
     config.show()
     mod_plugins.show()

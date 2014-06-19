@@ -50,7 +50,8 @@ package-deb-bin: package-deb-src
 package-rpm-src: build-dir-prepare
 	cd $(BUILD_DIR) && python setup.py bdist_rpm --spec-only
 	cd $(BUILD_DIR) && python setup.py sdist
-	sed -ri 's#(python setup.py install .*)#\1\nsed -ri "s@^(.*\.py)@\\1*@" INSTALLED_FILES\nsed -i -e "s:\\.gz\$$\:\\.gz:;t;s:\\(/man/man.*/.*\\):\\1.gz:" INSTALLED_FILES#' $(BUILD_DIR)/dist/$(PACKAGE)*.spec
+	sed -ri 's#(python setup.py install .*)#\1\nsed -ri "s@^(.*\.py)@\\1*@" INSTALLED_FILES\n#' $(BUILD_DIR)/dist/$(PACKAGE)*.spec
+	sed -ri 's#(python setup.py install .*)#\1\nsed -i -e "s:\\.gz\$$\:\\.gz:;t;s:\\(/man/man.*/.*\\):\\1.gz:" INSTALLED_FILES\n#' $(BUILD_DIR)/dist/$(PACKAGE)*.spec
 	/bin/echo -e "\n%config(noreplace)\n/etc/koublad.conf" >>$(BUILD_DIR)/dist/$(PACKAGE).spec
 	mkdir -pv $(PKG_DIR_RPM)
 	cp -vf $(BUILD_DIR)/dist/$(PACKAGE)*.tar.gz $(PKG_DIR_RPM)

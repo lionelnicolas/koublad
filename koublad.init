@@ -101,15 +101,12 @@ start() {
 		debian|ubuntu)
 			log_daemon_msg "Starting" "${PROG_NAME}" || true
 
-			${KOUBLAD} >/dev/null 2>&1 &
-			RETVAL=$?
-			echo $! >${PID_FILE}
-
-			if [ ${RETVAL} -eq 0 ]; then
+			if ${KOUBLAD} --pid-file ${PID_FILE}; then
 				log_end_msg 0 || true
+				RETVAL=0
 			else
-				rm -f ${PID_FILE}
 				log_end_msg 1 || true
+				RETVAL=1
 			fi
 
 			return ${RETVAL}
@@ -117,15 +114,12 @@ start() {
 		redhat)
 			echo -n $"Starting ${PROG_NAME}: "
 
-			${KOUBLAD} >/dev/null 2>&1 &
-			RET=$?
-			echo $! >${PID_FILE}
-
-			if [ ${RET} -eq 0 ]; then
+			if ${KOUBLAD} --pid-file ${PID_FILE}; then
 				success
+				RETVAL=0
 			else
-				rm -f ${PID_FILE}
 				failure
+				RETVAL=1
 			fi
 
 			return ${RETVAL}
@@ -139,7 +133,6 @@ stop() {
 			log_daemon_msg "Stopping" "${PROG_NAME}" || true
 
 			if send_kill; then
-				rm -f ${PID_FILE}
 				log_end_msg 0 || true
 			else
 				log_end_msg 1 || true
@@ -150,7 +143,6 @@ stop() {
 			echo -n $"Stopping ${PROG_NAME}: "
 
 			if send_kill; then
-				rm -f ${PID_FILE}
 				success
 			else
 				failure

@@ -105,6 +105,10 @@ def defaultVariables(config_checks):
 def parseConfigurationFile(config_file, config_checks, config_optional, config_dict, plugin_name=False):
     RE_CONFIG_LINE   = re.compile("^[\ \t]*()([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
     RE_CONFIG_LINE_P = re.compile("^[\ \t]*([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)[\ \t]*=[\ \t]*([^#\n\r]+).*$")
+
+    if not os.path.isfile(config_file):
+        log.fatal("Configuration file '%s' does not exist." % (config_file))
+
     for line in open(config_file).readlines():
         if plugin_name:
             match = RE_CONFIG_LINE_P.match(line)

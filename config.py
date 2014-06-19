@@ -164,6 +164,7 @@ def parse_cmdline():
     return parser.parse_args()
 
 def parse():
+    global options
     options, args = parse_cmdline()
 
     global config_file

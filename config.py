@@ -197,6 +197,11 @@ def parse():
         "plugin_dir":      { "type": "str",   "default": "plugins/", "check": "checkDirectory(value)" },
         "quorum_plugin":   { "type": "str",   "default": False,      "check": "checkQuorumPlugin(value)" },
         "switcher_plugin": { "type": "str",   "default": False,      "check": "checkSwitcherPlugin(value)" },
+        "filelog_filename": { "type": "str",   "default": False,      "check": "is not False" },
+        "filelog_level": { "type": "str",   "default": False,      "check": "in ['debug','info','warning','critical']" },
+        "syslog_level": { "type": "str",   "default": False,      "check": "in ['debug','info','warning','critical']" },
+        "syslog_facility": { "type": "str",   "default": False,      "check": "in ['auth', 'authpriv', 'cron', 'daemon', 'ftp', 'kern', 'lpr', 'mail', 'news', 'syslog', 'user', 'uucp', 'local0', 'local1', 'local2', 'local3', 'local4', 'local5', 'local6', 'local7']" },
+        "verbosity": { "type": "str",   "default": False,      "check": "in ['debug','info','warning','critical']" },
     }
     config_optional = [
         "quorum_plugin",
@@ -209,10 +214,11 @@ def parse():
     # parse configuration file
     config_dict = parseConfigurationFile(config_file, config_checks, config_optional, config_dict)
 
-    # set variable globaly (seems ugly to use exec(), maybe use globals() dict in the future
+    # set variable globaly
     for name in config_checks.keys():
         exec("globals()['%s'] = config_dict[name]" % (name))
 
     # search for plugins
     mod_plugins.search(plugin_dir)
+    mod_logger.configMainLogger()
 

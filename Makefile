@@ -1,6 +1,6 @@
 BUILD_DIR:=build_dir
 PACKAGE:=koublad
-VERSION:=0.1.1-$(shell date +%s)
+VERSION:=0.1.2-$(shell date +%s)
 
 PKG_DIR=packaging
 PKG_DIR_DEB=$(PKG_DIR)/deb
@@ -8,12 +8,12 @@ PKG_DIR_RPM=$(PKG_DIR)/rpm
 
 all: distclean package-deb-bin package-rpm-bin
 	@echo
-	@echo "$(PACKAGE) has been fully built"
+	@echo "$(PACKAGE) binary packages have been fully built"
 	@find $(PKG_DIR)
 
 all-src: distclean package-deb-src package-rpm-src
 	@echo
-	@echo "$(PACKAGE) has been fully built"
+	@echo "$(PACKAGE) sources have been fully prepared"
 	@find $(PKG_DIR)
 
 build-dir-prepare: clean

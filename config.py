@@ -16,6 +16,14 @@ def splitIntoList(value):
     elif value.count(',') == 0: return [value]
     else:                       return value.split(',')
 
+def getDistributionFamily():
+    if   os.path.isfile("/etc/redhat-release"):
+        return "redhat"
+    elif os.path.isfile("/etc/os-release"):
+        return "debian"
+    else:
+        return "unknown"
+
 def convertType(name, value, vartype):
     ret   = False
     value = value.strip()
@@ -66,9 +74,32 @@ def checkDrbdResources(resources):
     return True
 
 def checkServices(services):
+    distro = getDistributionFamily()
+
+    if   distro == "debian":
+        rcd = "/etc/rc2.d/S*"
+    elif distro == "redhat":
+        rcd = "/etc/rc.d/rc3.d/S*"
+    else:
+        rcd = False
+
     for service in services:
-        if not os.path.isfile(os.path.join("/etc/init.d", service)):
+        initd = os.path.join("/etc/init.d", service)
+
+        if not os.path.isfile(initd):
             log.fatal("Service '%s' does not exist" % (service))
+        elif rcd:
+            found = False
+            inode = os.stat(initd).st_ino
+
+            for rc in glob.glob(rcd):
+                if inode == os.stat(rc).st_ino:
+                    # we have found a 'start' symlink
+                    found = True
+                    break
+
+            if found:
+                log.fatal("Service '%s' is enabled at boot and shouldn't be managed by koublad" % (service))
 
     return True
 

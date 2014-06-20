@@ -78,13 +78,18 @@ def checkServices(services):
 
     if   distro == "debian":
         rcd = "/etc/rc2.d/S*"
+        cmd = "update-rc.d -f remove %s"
+
     elif distro == "redhat":
         rcd = "/etc/rc.d/rc3.d/S*"
+        cmd = "chkconfig %s off"
+
     else:
         rcd = False
 
     for service in services:
-        initd = os.path.join("/etc/init.d", service)
+        initd      = os.path.join("/etc/init.d", service)
+        disablecmd = cmd % service
 
         if not os.path.isfile(initd):
             log.fatal("Service '%s' does not exist" % (service))
@@ -99,7 +104,9 @@ def checkServices(services):
                     break
 
             if found:
-                log.fatal("Service '%s' is enabled at boot and shouldn't be managed by koublad" % (service))
+                log.warning("Service '%s' is already enabled at boot" % (service))
+                log.info("If you want to disable it, you can use '%s'" % (disablecmd))
+                log.fatal("Service '%s' cannot be managed koublad" % (service))
 
     return True
 

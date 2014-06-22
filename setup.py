@@ -72,9 +72,6 @@ if   get_build_target() == "redhat":
 elif get_build_target() == "debian":
     DATA_FILES.append(( "/etc/default",   [ create_file("default/koublad", DEFAULT_FILE, 0644) ]))
 
-for i in DATA_FILES:
-    print i
-
 setup(
     name               = _vars.PACKAGE,
     version            = _vars.VERSION,

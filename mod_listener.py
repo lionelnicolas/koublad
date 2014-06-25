@@ -10,8 +10,11 @@ class ClientHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         self.data, self.sock = self.request
 
-        self.server.last_udp_data = self.data
-        self.server.got_remote_ping.set()
+        if self.client_address[0] == config.peer_host:
+            self.server.last_udp_data = self.data
+            self.server.got_remote_ping.set()
+        else:
+            log.error("Received data from an unexpected peer, discarding data")
 
 class UdpPingServer(SocketServer.UDPServer):
     def __init__(self):

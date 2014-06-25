@@ -108,6 +108,8 @@ def main():
 
     mod_plugins.loadQuorum(config.quorum_plugin)
     mod_plugins.loadSwitcher(config.switcher_plugin)
+    mod_plugins.loadNotifier(config.notifier_plugin)
+
     print
 
     signal.signal(signal.SIGINT,  signal_handler)

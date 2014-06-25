@@ -126,6 +126,14 @@ def checkSwitcherPlugin(filepath):
 
     return os.path.isfile(os.path.join(config_dict['plugin_dir'], "switcher", "%s.py" % filepath)) or log.fatal("Switcher plugin '%s' does not exist." % (filepath))
 
+def checkNotifierPlugin(filepath):
+    global config_dict
+
+    if not filepath:
+        return True
+
+    return os.path.isfile(os.path.join(config_dict['plugin_dir'], "notifier", "%s.py" % filepath)) or log.fatal("Notifier plugin '%s' does not exist." % (filepath))
+
 def checkFile(filepath):
     return os.path.isfile(filepath) or log.fatal("File '%s' does not exist." % (filepath))
 
@@ -235,10 +243,12 @@ def parse():
         "plugin_dir":      { "type": "str",   "default": "plugins/", "check": "checkDirectory(value)" },
         "quorum_plugin":   { "type": "str",   "default": False,      "check": "checkQuorumPlugin(value)" },
         "switcher_plugin": { "type": "str",   "default": False,      "check": "checkSwitcherPlugin(value)" },
+        "notifier_plugin": { "type": "str",   "default": False,      "check": "checkNotifierPlugin(value)" },
     }
     config_optional = [
         "quorum_plugin",
         "switcher_plugin",
+        "notifier_plugin",
     ]
 
     # set default values

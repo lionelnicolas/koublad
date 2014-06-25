@@ -106,7 +106,7 @@ def checkServices(services):
             if found:
                 log.warning("Service '%s' is already enabled at boot" % (service))
                 log.info("If you want to disable it, you can use '%s'" % (disablecmd))
-                log.fatal("Service '%s' cannot be managed koublad" % (service))
+                log.fatal("Service '%s' cannot be managed by koublad" % (service))
 
     return True
 

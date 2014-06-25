@@ -28,9 +28,9 @@ def initlog(name):
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-file_formatter   = logging.Formatter("%(asctime)s - %(name)-8s - %(levelname)-7s - %(message)s")
-stream_formatter = logging.Formatter("%(asctime)s.%(msecs)03d - %(name)-8s - %(levelname)-7s - %(message)s", datefmt="%H:%M:%S")
-syslog_formatter = logging.Formatter("failover: %(name)-8s - %(levelname)-7s - %(message)s")
+file_formatter   = logging.Formatter("%(asctime)s - %(name)-8s - %(levelname)-8s - %(message)s")
+stream_formatter = logging.Formatter("%(asctime)s.%(msecs)03d - %(name)-8s - %(levelname)-8s - %(message)s", datefmt="%H:%M:%S")
+syslog_formatter = logging.Formatter("failover: %(name)-8s - %(levelname)-8s - %(message)s")
 
 file_handler = logging.FileHandler('/var/log/koublad.log')
 file_handler.setLevel(logging.DEBUG)

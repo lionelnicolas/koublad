@@ -56,18 +56,41 @@ def send_email(subject, body):
     msg["From"]    = sender
     msg["To"]      = ', '.join(recipients)
 
-    smtpserver.set_debuglevel(0) # set to 1 if you want SMTP protocol debugging
-    smtpserver.ehlo()
+    # set to 1 if you want SMTP protocol debugging
+    smtpserver.set_debuglevel(0)
 
-    if encryption == "tls":
-        smtpserver.starttls()
+    try:
         smtpserver.ehlo()
 
-    if username and password:
-        smtpserver.login(username, password)
+        if encryption == "tls":
+            smtpserver.starttls()
+            smtpserver.ehlo()
 
-    smtpserver.sendmail(sender, recipients, msg.as_string())
-    smtpserver.quit()
+        if username and password:
+            smtpserver.login(username, password)
+
+        smtpserver.sendmail(sender, recipients, msg.as_string())
+        smtpserver.quit()
+
+    except smtplib.SMTPSenderRefused:
+        log.error("Sender address refused")
+        return False
+
+    except smtplib.SMTPRecipientsRefused:
+        log.error("All recipient addresses refused")
+        return False
+
+    except smtplib.SMTPAuthenticationError, e:
+        log.error("Failed to authenticate to STMP server: %s", e)
+        return False
+
+    except smtplib.SMTPException, e:
+        log.error("Unhandled SMTP exception: %s", e)
+        return False
+
+    except Exception, e:
+        log.error("Unhandled exception: %s", e)
+        return False
 
     return True
 

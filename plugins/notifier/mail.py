@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import config
 import email.mime.text
 import smtplib
+import textwrap
+
+import config
+import mod_utils
 
 import mod_logger
 log = mod_logger.initlog(__name__)
@@ -104,6 +107,32 @@ def send_email(subject, body, timeout=5):
 
 # function called by monitor to notify an activate action
 def activate():
+    hostname = mod_utils.gethostname()
+    body     = "Hi,\n\n"
+
+    if config.role == "slave":
+        subject  = "koublad: spare node %s has switched to master state" % (hostname)
+
+        content  = "Spare node %s has switched its role to master because peer %s, which " % (hostname, config.peer_host)
+        content += "is supposed to be master, is not reachable or unhealthy. Failback to "
+        content += "remote peer will be done as soon as it recover and is fully synced with "
+        content += "current master node."
+
+        body    += '\n'.join(textwrap.wrap(content, 70))
+    else:
+        subject  = "koublad: master node %s has recovered" % (hostname)
+
+        content  = "Node %s has switched its role to master after resuming from a downtime. " % (hostname)
+        content += "Current master node should be currently synced with remote peer %s." % (config.peer_host)
+
+        body    += '\n'.join(textwrap.wrap(content, 70))
+
+    body += "\n\nThis is an automated message.\n\n"
+    body += "-- \n"
+    body += "Koublad failover daemon"
+
+    send_email(subject, body)
+
     return True
 
 # function called by monitor to notify a deactivate action

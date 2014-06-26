@@ -262,6 +262,13 @@ class Status():
 
         self.SetState("master")
 
+        # Notify failback/failover
+        if mod_plugins.notifier:
+            if mod_plugins.notifier.activate():
+                log.info("Notification sent")
+            else:
+                log.error("Failed to send notification")
+
         log.info("We are now master")
 
     def Disable(self):

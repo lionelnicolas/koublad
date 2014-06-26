@@ -22,6 +22,7 @@ def initlog(name):
     name = re.sub("^mod_",      "", name)
     name = re.sub("^quorum_",   "", name)
     name = re.sub("^switcher_", "", name)
+    name = re.sub("^notifier_", "", name)
 
     return logging.getLogger(name)
 

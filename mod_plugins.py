@@ -14,6 +14,7 @@ RE_PLUGIN_FILE = re.compile("^([^\.]+)\.py$")
 found    = dict()
 quorum   = False
 switcher = False
+notifier = False
 
 def search(plugin_dir):
     global found
@@ -65,6 +66,13 @@ def loadSwitcher(switcher_plugin):
     # load switcher plugin if any
     if switcher_plugin:
         switcher = load("switcher", switcher_plugin) or log.fatal("Failed to load switcher plugin '%s'" % (switcher_plugin))
+
+def loadNotifier(notifier_plugin):
+    global notifier
+
+    # load notifier plugin if any
+    if notifier_plugin:
+        notifier = load("notifier", notifier_plugin) or log.fatal("Failed to load notifier plugin '%s'" % (notifier_plugin))
 
 def show():
     global found

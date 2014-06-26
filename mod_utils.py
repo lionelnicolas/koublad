@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import socket
 import subprocess
 import time
 
@@ -22,4 +23,7 @@ def execute(cmd, timeout=10):
         res = 1
 
     return res, pipe.stdout.readlines()
+
+def gethostname():
+    return socket.gethostname()
 

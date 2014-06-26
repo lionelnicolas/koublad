@@ -30,7 +30,7 @@ config_optional = [
     "password",
 ]
 
-def send_email(subject, body):
+def send_email(subject, body, timeout=5):
     global server
     global port
     global sender
@@ -42,11 +42,16 @@ def send_email(subject, body):
     if not port:
         port = DEFAULT_PORT[encryption]
 
-    if   encryption in [ "none", "tls" ]:
-        smtpserver = smtplib.SMTP(server, port)
-    elif encryption in [ "ssl" ]:
-        smtpserver = smtplib.SMTP_SSL(server, port)
-    else:
+    try:
+        if   encryption in [ "none", "tls" ]:
+            smtpserver = smtplib.SMTP(server, port, timeout=timeout)
+        elif encryption in [ "ssl" ]:
+            smtpserver = smtplib.SMTP_SSL(server, port, timeout=timeout)
+        else:
+            return False
+
+    except Exception, e:
+        log.error("Failed to establish connection with SMTP server: %s", e)
         return False
 
     msg = email.mime.text.MIMEText(body)

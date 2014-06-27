@@ -31,6 +31,10 @@ def create_file(filepath, content, mode=0755):
 
     return filepath
 
+RPM_REQUIRES = [
+    "SOAPpy",
+]
+
 POST_INSTALL = \
     "#!/bin/sh\n" \
     "\n" \
@@ -91,6 +95,7 @@ setup(
         'bdist_rpm': {
             'post_install':  create_file("post_install",  POST_INSTALL,  0755),
             'pre_uninstall': create_file("pre_uninstall", PRE_UNINSTALL, 0755),
+            'requires':      ', '.join(RPM_REQUIRES),
         },
         'bdist_deb_fake': { # this options is never used by distutils/stdeb, calling create_file() will just create needed files in the right place
             'post_install':  create_file("debian/postinst", POST_INSTALL,  0755),

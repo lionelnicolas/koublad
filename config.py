@@ -231,19 +231,28 @@ def parse():
     config_dict = dict()
 
     config_checks = {
-        "port":            { "type": "int",   "default": 4997,       "check": "> 1024" },
-        "role":            { "type": "str",   "default": False,      "check": "in ['master', 'slave']" },
-        "initdead":        { "type": "float", "default": 5.0,        "check": "> 0.0" },
-        "peer_host":       { "type": "str",   "default": False,      "check": False },
-        "peer_port":       { "type": "int",   "default": False,      "check": "> 1024" },
-        "timeout":         { "type": "float", "default": 2.0,        "check": ">= 0.1" },
-        "interval":        { "type": "float", "default": 0.2,        "check": ">= 0.2" },
-        "services":        { "type": "list",  "default": [],         "check": "checkServices(value)" },
-        "drbd_resources":  { "type": "list",  "default": [],         "check": "checkDrbdResources(value)" },
-        "plugin_dir":      { "type": "str",   "default": "plugins/", "check": "checkDirectory(value)" },
-        "quorum_plugin":   { "type": "str",   "default": False,      "check": "checkQuorumPlugin(value)" },
-        "switcher_plugin": { "type": "str",   "default": False,      "check": "checkSwitcherPlugin(value)" },
-        "notifier_plugin": { "type": "str",   "default": False,      "check": "checkNotifierPlugin(value)" },
+        "port":             { "type": "int",   "default": 4997,       "check": "> 1024" },
+        "role":             { "type": "str",   "default": False,      "check": "in ['master', 'slave']" },
+        "initdead":         { "type": "float", "default": 5.0,        "check": "> 0.0" },
+        "peer_host":        { "type": "str",   "default": False,      "check": False },
+        "peer_port":        { "type": "int",   "default": False,      "check": "> 1024" },
+        "timeout":          { "type": "float", "default": 2.0,        "check": ">= 0.1" },
+        "interval":         { "type": "float", "default": 0.2,        "check": ">= 0.2" },
+        "services":         { "type": "list",  "default": [],         "check": "checkServices(value)" },
+        "drbd_resources":   { "type": "list",  "default": [],         "check": "checkDrbdResources(value)" },
+        "plugin_dir":       { "type": "str",   "default": "plugins/", "check": "checkDirectory(value)" },
+        "quorum_plugin":    { "type": "str",   "default": False,      "check": "checkQuorumPlugin(value)" },
+        "switcher_plugin":  { "type": "str",   "default": False,      "check": "checkSwitcherPlugin(value)" },
+        "filelog_filename": { "type": "str",   "default": False,      "check": "is not False" },
+        "filelog_level":    { "type": "str",   "default": False,      "check": "in ['debug','info','warning','critical']" },
+        "syslog_level":     { "type": "str",   "default": False,      "check": "in ['debug','info','warning','critical']" },
+        "syslog_facility":  { "type": "str",   "default": False,      "check": "in ['auth', 'authpriv', 'cron', 'daemon',"
+                                                                                    "'ftp', 'kern', 'lpr', 'mail', 'news',"
+                                                                                    "'syslog', 'user', 'uucp', 'local0', 'local1',"
+                                                                                    "'local2', 'local3', 'local4', 'local5',"
+                                                                                    "'local6', 'local7']" },
+        "verbosity":        { "type": "str",   "default": False,      "check": "in ['debug','info','warning','critical']" },
+        "notifier_plugin":  { "type": "str",   "default": False,      "check": "checkNotifierPlugin(value)" },
     }
     config_optional = [
         "quorum_plugin",
@@ -257,10 +266,11 @@ def parse():
     # parse configuration file
     config_dict = parseConfigurationFile(config_file, config_checks, config_optional, config_dict)
 
-    # set variable globaly (seems ugly to use exec(), maybe use globals() dict in the future
+    # set variable globaly
     for name in config_checks.keys():
         exec("globals()['%s'] = config_dict[name]" % (name))
 
     # search for plugins
     mod_plugins.search(plugin_dir)
+    mod_logger.configMainLogger()
 

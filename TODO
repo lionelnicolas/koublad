@@ -1,9 +1,0 @@
-
-#for logging config parsing:
-
-assert syslog_level in [None,"debug","info", ...]
-assert syslog_facility in ['user',range(0,8),...]
-assert filelog_level in [None,"debug","info", ...]
-assert isWriteable(filelog_filename)
-
-if config.verbose: logger.addHandler(stream_handler)

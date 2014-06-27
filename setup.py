@@ -35,6 +35,10 @@ RPM_REQUIRES = [
     "SOAPpy",
 ]
 
+DEB_DEPENDS = [
+    "python-soappy",
+]
+
 POST_INSTALL = \
     "#!/bin/sh\n" \
     "\n" \
@@ -52,7 +56,9 @@ PRE_UNINSTALL = \
 
 STDEB_CFG = \
     "[DEFAULT]\n" \
-    "Package: %s\n" % (_vars.PACKAGE)
+    "Package: %s\n" \
+    "Depends: %s\n" \
+    % (_vars.PACKAGE, ', '.join(DEB_DEPENDS))
 
 DEFAULT_FILE = \
     "# Defaults for koublad - sourced by /etc/init.d/koublad\n" \

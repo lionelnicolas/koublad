@@ -20,8 +20,11 @@ RE_DRBD_ROLE       = re.compile("^([^/]+)/([^\n]+)$")
 RE_DRBD_MINOR      = re.compile("^/dev/drbd([0-9]+)$")
 RE_DRBD_PROC_LINE1 = re.compile("^[ \t]*([0-9]+): cs:([^ ]+) ro:([^/]+)/([^ ]+) ds:([^/]+)/([^ ]+) ([^ ]+) ([^ ]+)\n$")
 RE_DRBD_PROC_LINE2 = re.compile("^[ \t]*ns:([0-9]+) nr:([0-9]+) dw:([0-9]+) dr:([0-9]+) al:([0-9]+) bm:([0-9]+) lo:([0-9]+) pe:([0-9]+) ua:([0-9]+) ap:([0-9]+) ep:([0-9]+) wo:([a-z]+) oos:([0-9]+)\n$")
+RE_DRBD_MOUNT      = re.compile("^([^\t ]+)[ \t]+([^\t ]+)[ \t]+([^\t ]+)[ \t]+([^\t ]+)[ \t]+([^\t ]+)[ \t]+([^\t ]+)[ \t]*$")
 
 RE_FUSER = re.compile("^[ \t]+([^ \t]+)[ \t]+([0-9]+)[ \t]+([^ \t]+)[ \t]+(.*)\n$")
+
+FSTAB = "/etc/fstab"
 
 PROC_DRBD   = "/proc/drbd"
 PROC_MOUNTS = "/proc/mounts"
@@ -47,6 +50,7 @@ class Resource():
         self.replation_protocol = False
         self.io_flags           = False
 
+        self.getMountPoint()
         self.readStatus()
 
     def getMinor(self):
@@ -56,6 +60,20 @@ class Resource():
             return int(match.group(1))
 
         return 99
+
+    def getMountPoint(self):
+        for line in open(FSTAB).readlines():
+            match = RE_DRBD_MOUNT.match(line)
+
+            if match:
+                if self.device == match.group(1):
+                    self.mountpoint = match.group(2)
+
+                    return True
+
+        log.fatal("mount point for device %s is not defined in %s" % (self.device, FSTAB))
+
+        return False
 
     # Sample from /proc/drbd
     # 2: cs:Connected ro:Secondary/Secondary ds:UpToDate/UpToDate C r-----

@@ -72,6 +72,7 @@ DATA_FILES = [
     ( "/usr/share/koublad",                  glob.glob("./mod_*.py") + [ "config.py", "koublad.py", "_vars.py" ] ),
     ( "/usr/share/koublad/plugins/quorum",   glob.glob("./plugins/quorum/*.py")),
     ( "/usr/share/koublad/plugins/switcher", glob.glob("./plugins/switcher/*.py")),
+    ( "/usr/share/koublad/plugins/notifier", glob.glob("./plugins/notifier/*.py")),
     ( "/usr/share/man/man8",                 ["koublad.8"]),
     ( "/usr/share/man/man5",                 ["koublad.conf.5"]),
 ]

@@ -126,7 +126,7 @@ class Resource():
         return False
 
     def isInUse(self):
-        res, output = mod_utils.execute("fuser -v -m %s" % (self.device))
+        res, output = mod_utils.execute("fuser -v -M -m %s" % (self.mountpoint))
         in_use      = False
 
         for line in output:
@@ -163,11 +163,11 @@ class Resource():
             start = time.time()
 
             while self.isInUse() and time.time() - start <= FUSERKILL_TIMEOUT:
-                mod_utils.execute("fuser -k -m %s -TERM" % (self.device))
+                mod_utils.execute("fuser -k -M -m %s -TERM" % (self.mountpoint))
                 time.sleep(0.1)
 
             if time.time() - start > FUSERKILL_TIMEOUT:
-                mod_utils.execute("fuser -k -m %s -KILL" % (self.device))
+                mod_utils.execute("fuser -k -M -m %s -KILL" % (self.mountpoint))
 
         res, output = mod_utils.execute("umount %s" % (self.device))
         start       = time.time()
